@@ -67,11 +67,19 @@ fun QiblaMenu(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(265.dp)
             )
             Spacer(modifier = Modifier.padding(20.dp))
-            Image(
-                painter = painterResource(id = R.drawable.oval),
-                contentDescription = "",
-                modifier = Modifier.size(90.dp)
-            )
+            Box() {
+                Image(
+                    painter = painterResource(id = R.drawable.oval),
+                    contentDescription = "",
+                    modifier = Modifier.size(90.dp)
+                )
+                Text(
+                    text = "0°",
+                    style = Typography.displayLarge,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
         }
         BottomNavigation(
             modifier = Modifier

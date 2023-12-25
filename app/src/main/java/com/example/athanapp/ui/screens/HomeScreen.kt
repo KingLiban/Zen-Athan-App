@@ -166,15 +166,27 @@ fun BottomNavigation(modifier: Modifier) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(start = 10.dp, end = 10.dp, top = 3.dp, bottom = 3.dp)
         ) {
-//        Image(painter = , contentDescription = )
-//        Spacer(modifier = Modifier.padding(25.dp))
-//        Image(painter = , contentDescription = )
-//        Spacer(modifier = Modifier.padding(25.dp))
-//        Image(painter = , contentDescription = )
-//        Spacer(modifier = Modifier.padding(25.dp))
-//        Image(painter = , contentDescription = )
+        Image(
+            painter = painterResource(R.drawable.home_icon),
+            contentDescription = "",
+            modifier = Modifier.size(50.dp)
+        )
+        Image(
+            painter = painterResource(id = R.drawable.qibla_icon),
+            contentDescription = "",
+            modifier = Modifier.size(50.dp)
+        )
+        Image(
+            painter = painterResource(id = R.drawable.filler_icon),
+            contentDescription = "",
+            modifier = Modifier.size(50.dp)
+        )
+        Image(painter = painterResource(id = R.drawable.settings_icon),
+            contentDescription = "",
+            modifier = Modifier.size(50.dp)
+        )
         }
     }
 
