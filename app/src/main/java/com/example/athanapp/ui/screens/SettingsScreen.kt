@@ -125,8 +125,6 @@ private fun SettingCards() {
 
     contents.forEach { content ->
         SettingCard(content = content, clickAction = {
-            // Handle the click action here
-            // You can navigate to another screen or perform any action you need
         }, false)
         Spacer(modifier = Modifier.padding(3.dp))
     }

@@ -127,20 +127,6 @@ private fun PrayerTimeList() {
             }
         }
 
-        // Notification bells
-        Card(
-            modifier = Modifier
-                .padding(vertical = 8.dp)
-                .fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(156, 180, 216)
-            )
-        ) {
-            // Add your content for Notification bells here
-        }
     }
 }
 
