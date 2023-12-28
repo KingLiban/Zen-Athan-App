@@ -10,6 +10,8 @@ interface AthanObjectRepository {
 class AthanObjectNetworkRepository(
     private val amphibiansApiService: AthanApiService
 ) : AthanObjectRepository {
+
+
     override suspend fun getAmphibiansObject(): List<PrayerData> = amphibiansApiService.getPrayerData()
 
 }

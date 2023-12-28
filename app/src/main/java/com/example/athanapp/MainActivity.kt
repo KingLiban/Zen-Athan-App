@@ -3,7 +3,7 @@ package com.example.athanapp
 import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
-import android.location.LocationManager
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,18 +13,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import com.example.athanapp.data.AppContainer
 import com.example.athanapp.data.DefaultAppContainer
-import com.example.athanapp.ui.screens.HomeBody
 import com.example.athanapp.ui.screens.Menu
 import com.example.compose.AppTheme
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Task
+import java.util.Calendar
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
@@ -32,13 +31,11 @@ class MainActivity : ComponentActivity() {
     private var isLocationPermissionGranted = false
     private var isNotificationPermissionGranted = false
 
-    private var appContainer: AppContainer = DefaultAppContainer()
+    private lateinit var appContainer: AppContainer
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        appContainer = DefaultAppContainer()
 
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             isInternetPermissionGranted = permissions[Manifest.permission.INTERNET] ?: isInternetPermissionGranted
@@ -97,29 +94,15 @@ class MainActivity : ComponentActivity() {
 
             permissionLauncher.launch(permissionRequest.toTypedArray())
         } else {
-            initializeApp()
+            val fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+            fusedLocationProviderClient.lastLocation
+                .addOnSuccessListener { location ->
+                    initializeApp(location)
+                }
+                .addOnFailureListener { e ->
+                    e.printStackTrace()
+                }
         }
-    }
-
-    private fun initializeApp() {
-//        appContainer.up
-    }
-
-    private fun fetchCoarseLocation(): String {
-        val locationManager = getSystemService(LOCATION_SERVICE) as? LocationManager
-        val coarseLocationProvider = LocationManager.NETWORK_PROVIDER
-        var coarseLocation = "Not available"
-
-        try {
-            val lastKnownLocation = locationManager?.getLastKnownLocation(coarseLocationProvider)
-            if (lastKnownLocation != null) {
-                coarseLocation = "Latitude: ${lastKnownLocation.latitude}, Longitude: ${lastKnownLocation.longitude}"
-            }
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-
-        return coarseLocation
     }
 
     private fun showLocationPermissionDeniedMessage() {
@@ -133,5 +116,19 @@ class MainActivity : ComponentActivity() {
         val dialog = builder.create()
         dialog.show()
     }
+
+    private fun initializeApp(location: Location?) {
+        if (location != null) {
+            val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+            val (latitude, longitude) = Pair(location.latitude, location.longitude)
+            val baseUrl = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
+            println(baseUrl)
+            appContainer = DefaultAppContainer(baseUrl)
+        } else {
+            println("Location is null")
+        }
+    }
+
+
 
 }
