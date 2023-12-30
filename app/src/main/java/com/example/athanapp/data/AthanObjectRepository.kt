@@ -4,14 +4,12 @@ import com.example.athanapp.network.AthanApiService
 import com.example.athanapp.network.PrayerData
 
 interface AthanObjectRepository {
-    suspend fun getAmphibiansObject(): List<PrayerData>
+    suspend fun getAthanObject(): List<PrayerData>
 }
-
 class AthanObjectNetworkRepository(
-    private val amphibiansApiService: AthanApiService
+    private val athanApiService: AthanApiService
 ) : AthanObjectRepository {
 
-
-    override suspend fun getAmphibiansObject(): List<PrayerData> = amphibiansApiService.getPrayerData()
+    override suspend fun getAthanObject(): List<PrayerData> = athanApiService.getPrayerData()
 
 }

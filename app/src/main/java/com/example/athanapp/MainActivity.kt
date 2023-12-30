@@ -21,7 +21,6 @@ import com.example.athanapp.data.DefaultAppContainer
 import com.example.athanapp.ui.screens.Menu
 import com.example.compose.AppTheme
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.tasks.Task
 import java.util.Calendar
 
 
@@ -119,14 +118,32 @@ class MainActivity : ComponentActivity() {
 
     private fun initializeApp(location: Location?) {
         if (location != null) {
-            val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+            var currentYear = Calendar.getInstance().get(Calendar.YEAR)
             val (latitude, longitude) = Pair(location.latitude, location.longitude)
-            val baseUrl = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
-            println(baseUrl)
-            appContainer = DefaultAppContainer(baseUrl)
+            // current year
+            val baseUrl1 = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
+            currentYear++
+            // next year
+            val baseUrl2 = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
+            currentYear++
+            // next next year january
+            val baseUrl3 = "https://api.aladhan.com/v1/calendar/$currentYear/1?latitude=$latitude&longitude=$longitude"
+            var list = ArrayList<String>()
+            list.add(baseUrl1)
+            list.add(baseUrl2)
+            list.add(baseUrl3)
+            println(list.toString())
+            appContainer = DefaultAppContainer(list, this)
+            updateDatabase(appContainer)
         } else {
             println("Location is null")
         }
+    }
+
+    private fun updateDatabase(appContainer: AppContainer) {
+        val prayerDao = appContainer.athanObjectRepositories
+        val prayerDataList = appContainer.athanObjectRepositories
+
     }
 
 
