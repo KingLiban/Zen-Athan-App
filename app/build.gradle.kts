@@ -3,6 +3,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp") version "1.9.0-1.0.13"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21"
+
 }
 
 android {
@@ -42,7 +44,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.3"
+        kotlinCompilerExtensionVersion = "1.5.7"
     }
     packaging {
         resources {
@@ -78,6 +80,10 @@ dependencies {
     implementation("androidx.room:room-runtime:${rootProject.extra["room_version"]}")
     ksp("androidx.room:room-compiler:${rootProject.extra["room_version"]}")
 
+    implementation("com.squareup.moshi:moshi:1.12.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.12.0")
+    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
 
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     debugImplementation("androidx.compose.ui:ui-tooling")

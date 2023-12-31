@@ -21,6 +21,10 @@ import com.example.athanapp.data.DefaultAppContainer
 import com.example.athanapp.ui.screens.Menu
 import com.example.compose.AppTheme
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 
@@ -96,7 +100,9 @@ class MainActivity : ComponentActivity() {
             val fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
             fusedLocationProviderClient.lastLocation
                 .addOnSuccessListener { location ->
-                    initializeApp(location)
+                    GlobalScope.launch(Dispatchers.Main) {
+                        initializeApp(location)
+                    }
                 }
                 .addOnFailureListener { e ->
                     e.printStackTrace()
@@ -116,33 +122,35 @@ class MainActivity : ComponentActivity() {
         dialog.show()
     }
 
-    private fun initializeApp(location: Location?) {
+    private suspend fun initializeApp(location: Location?) {
         if (location != null) {
             var currentYear = Calendar.getInstance().get(Calendar.YEAR)
+            println(currentYear)
             val (latitude, longitude) = Pair(location.latitude, location.longitude)
-            // current year
-            val baseUrl1 = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
-            currentYear++
-            // next year
-            val baseUrl2 = "https://api.aladhan.com/v1/calendar/$currentYear?latitude=$latitude&longitude=$longitude"
-            currentYear++
-            // next next year january
-            val baseUrl3 = "https://api.aladhan.com/v1/calendar/$currentYear/1?latitude=$latitude&longitude=$longitude"
-            var list = ArrayList<String>()
-            list.add(baseUrl1)
-            list.add(baseUrl2)
-            list.add(baseUrl3)
-            println(list.toString())
-            appContainer = DefaultAppContainer(list, this)
+            val years = listOf<Int>(currentYear, currentYear+1, currentYear+2)
+
+            appContainer = DefaultAppContainer(
+                this,
+                years,
+                latitude,
+                longitude
+            )
             updateDatabase(appContainer)
         } else {
             println("Location is null")
         }
     }
 
-    private fun updateDatabase(appContainer: AppContainer) {
-        val prayerDao = appContainer.athanObjectRepositories
-        val prayerDataList = appContainer.athanObjectRepositories
+
+    private suspend fun updateDatabase(appContainer: AppContainer) {
+        val prayerDao = appContainer.prayersRepository
+        prayerDao.clearAllPrayers()
+
+        val prayerEntities = appContainer.athanObjectRepository.getAthanObjects()
+
+        for (prayerEntity in prayerEntities) {
+            prayerDao.insertPrayer(prayerEntity)
+        }
 
     }
 
