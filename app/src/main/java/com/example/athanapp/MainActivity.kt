@@ -1,9 +1,7 @@
 package com.example.athanapp
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.pm.PackageManager
-import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,149 +9,195 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.example.athanapp.data.AppContainer
-import com.example.athanapp.data.DefaultAppContainer
-import com.example.athanapp.ui.screens.Menu
+import com.example.athanapp.ui.screens.QiblaMenu
+import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
-import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import java.util.Calendar
 
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        private const val COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION
+        private const val FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        private const val NOTIFICATION = Manifest.permission.POST_NOTIFICATIONS
+    }
+
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
-    private var isInternetPermissionGranted = false
     private var isLocationPermissionGranted = false
     private var isNotificationPermissionGranted = false
 
-    private lateinit var appContainer: AppContainer
-
+    private var isLocationGranted by mutableStateOf(false)
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
 
-        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            isInternetPermissionGranted = permissions[Manifest.permission.INTERNET] ?: isInternetPermissionGranted
-            isLocationPermissionGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: isLocationPermissionGranted
-            isNotificationPermissionGranted = permissions[Manifest.permission.POST_NOTIFICATIONS] ?: isNotificationPermissionGranted
+        permissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                isLocationPermissionGranted =
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION]
+                        ?: isLocationPermissionGranted
+                isNotificationPermissionGranted =
+                    permissions[Manifest.permission.POST_NOTIFICATIONS]
+                        ?: isNotificationPermissionGranted
 
-            if (!isLocationPermissionGranted) {
-                showLocationPermissionDeniedMessage()
             }
+
+        isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
+            this,
+            NOTIFICATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!isLocationPermissionGranted) {
+            val permissionRequest: MutableList<String> = ArrayList()
+
+            if (!isNotificationPermissionGranted) {
+                permissionRequest.add(NOTIFICATION)
+            }
+
+            permissionLauncher.launch(permissionRequest.toTypedArray())
         }
 
-        checkAndRequestPermissions()
-
+        super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Menu()
+                    StartUp()
+
                 }
             }
         }
     }
+    @Composable
+    fun StartUp() {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(id = R.drawable.rectangle),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillBounds
+            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .padding(50.dp)
+                    .fillMaxSize(),
+            ) {
+                Text(
+                    text = "Welcome",
+                    style = Typography.displayLarge,
+                    color = Color.White
+                )
 
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun checkAndRequestPermissions() {
-        isInternetPermissionGranted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.INTERNET
-        ) == PackageManager.PERMISSION_GRANTED
+                Spacer(modifier = Modifier.padding(7.dp))
+                Text(
+                    text = "Please give a moment to get everything started.",
+                    style = Typography.displayMedium,
+                    color = Color(156, 180, 216),
+                    textAlign = TextAlign.Center
+                )
 
-        isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
+                Spacer(modifier = Modifier.padding(48.dp))
 
-        isLocationPermissionGranted = ContextCompat.checkSelfPermission(
+                Button(onClick = { requestLocationAccess() }) {
+                    Text(
+                        text = "Give Location Access",
+                        style = Typography.displayMedium,
+                    )
+                }
+
+                Spacer(modifier = Modifier.padding(30.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.logo_placeholder),
+                    contentDescription = "",
+                    modifier = Modifier.size(136.dp)
+                )
+
+            }
+
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomEnd
+        ) {
+            if (isLocationGranted) {
+                (application as AthanApplication).onLocationPermissionGranted()
+
+                Button(
+                    onClick = {
+                        // Handle continue button click action here
+                    },
+                    modifier = Modifier
+                        .padding(8.dp)
+                ) {
+                    Text("Continue")
+                }
+            }
+        }
+
+    }
+
+    private fun requestLocationAccess() {
+        val isCoarseLocationPermissionGranted = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!isLocationPermissionGranted) {
-            val permissionRequest: MutableList<String> = ArrayList()
-            if (!isInternetPermissionGranted) {
-                permissionRequest.add(Manifest.permission.INTERNET)
-            }
+        val isFineLocationPermissionGranted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
-            if (!isLocationPermissionGranted) {
+        if (!isCoarseLocationPermissionGranted || !isFineLocationPermissionGranted) {
+            val permissionRequest: MutableList<String> = ArrayList()
+
+            if (!isCoarseLocationPermissionGranted) {
                 permissionRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
             }
 
-            if (!isNotificationPermissionGranted) {
-                permissionRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            if (!isFineLocationPermissionGranted) {
+                permissionRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
             }
-
             permissionLauncher.launch(permissionRequest.toTypedArray())
         } else {
-            val fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-            fusedLocationProviderClient.lastLocation
-                .addOnSuccessListener { location ->
-                    GlobalScope.launch(Dispatchers.Main) {
-                        initializeApp(location)
-                    }
-                }
-                .addOnFailureListener { e ->
-                    e.printStackTrace()
-                }
+            isLocationGranted = true
         }
     }
 
-    private fun showLocationPermissionDeniedMessage() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Location is needed")
-        builder.setMessage("Location permission is required at least once for the app to work as intended. Please grant the permission in your settings.")
-        builder.setPositiveButton("OK") { _, _ ->
-            finish()
-        }
-
-        val dialog = builder.create()
-        dialog.show()
+    @Preview
+    @Composable
+    fun StartUpPreview() {
+        StartUp()
     }
-
-    private suspend fun initializeApp(location: Location?) {
-        if (location != null) {
-            var currentYear = Calendar.getInstance().get(Calendar.YEAR)
-            println(currentYear)
-            val (latitude, longitude) = Pair(location.latitude, location.longitude)
-            val years = listOf<Int>(currentYear, currentYear+1, currentYear+2)
-
-            appContainer = DefaultAppContainer(
-                this,
-                years,
-                latitude,
-                longitude
-            )
-            updateDatabase(appContainer)
-        } else {
-            println("Location is null")
-        }
-    }
-
-
-    private suspend fun updateDatabase(appContainer: AppContainer) {
-        val prayerDao = appContainer.prayersRepository
-        prayerDao.clearAllPrayers()
-
-        val prayerEntities = appContainer.athanObjectRepository.getAthanObjects()
-
-        for (prayerEntity in prayerEntities) {
-            prayerDao.insertPrayer(prayerEntity)
-        }
-
-    }
-
-
 
 }

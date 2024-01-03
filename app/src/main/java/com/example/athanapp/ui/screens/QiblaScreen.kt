@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -92,4 +95,40 @@ fun QiblaMenu(modifier: Modifier = Modifier) {
 @Composable
 private fun QiblaPreview() {
     QiblaMenu()
+}
+
+@Composable
+fun BottomNavigation(modifier: Modifier) {
+    BottomAppBar(
+        modifier = modifier
+            .height(56.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 10.dp, end = 10.dp, top = 3.dp, bottom = 3.dp)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.home_icon),
+                contentDescription = "",
+                modifier = Modifier.size(50.dp)
+            )
+            Image(
+                painter = painterResource(id = R.drawable.qibla_icon),
+                contentDescription = "",
+                modifier = Modifier.size(50.dp)
+            )
+            Image(
+                painter = painterResource(id = R.drawable.filler_icon),
+                contentDescription = "",
+                modifier = Modifier.size(50.dp)
+            )
+            Image(painter = painterResource(id = R.drawable.settings_icon),
+                contentDescription = "",
+                modifier = Modifier.size(50.dp)
+            )
+        }
+    }
+
 }
