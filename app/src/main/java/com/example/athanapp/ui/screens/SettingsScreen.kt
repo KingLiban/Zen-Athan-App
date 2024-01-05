@@ -2,17 +2,13 @@ package com.example.athanapp.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -24,12 +20,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
+import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
-import com.example.compose.md_theme_light_tertiaryContainer
 
 @Composable()
-fun SettingsPage(modifier: Modifier = Modifier) {
+fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostController) {
     Box(modifier = modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.rectangle),
@@ -67,9 +65,11 @@ fun SettingsPage(modifier: Modifier = Modifier) {
         }
         BottomNavigation(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.BottomCenter),
+            navController = navHostController
         )
     }
+
 }
 
 @Composable
@@ -133,5 +133,5 @@ private fun SettingCards() {
 @Preview
 @Composable
 private fun SettingsPreview() {
-    SettingsPage()
+    SettingsPage(navHostController = rememberNavController())
 }

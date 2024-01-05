@@ -1,18 +1,13 @@
 package com.example.athanapp.ui.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,12 +17,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
+import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
-import com.example.compose.md_theme_light_tertiaryContainer
 
 @Composable()
-fun QiblaMenu(modifier: Modifier = Modifier) {
+fun QiblaMenu(modifier: Modifier = Modifier, navController: NavHostController) {
     Box(modifier = modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.rectangle),
@@ -86,7 +83,8 @@ fun QiblaMenu(modifier: Modifier = Modifier) {
         }
         BottomNavigation(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.BottomCenter),
+            navController = navController
         )
     }
 }
@@ -94,41 +92,6 @@ fun QiblaMenu(modifier: Modifier = Modifier) {
 @Preview
 @Composable
 private fun QiblaPreview() {
-    QiblaMenu()
+    QiblaMenu(navController = rememberNavController())
 }
 
-@Composable
-fun BottomNavigation(modifier: Modifier) {
-    BottomAppBar(
-        modifier = modifier
-            .height(56.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp, top = 3.dp, bottom = 3.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.home_icon),
-                contentDescription = "",
-                modifier = Modifier.size(50.dp)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.qibla_icon),
-                contentDescription = "",
-                modifier = Modifier.size(50.dp)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.filler_icon),
-                contentDescription = "",
-                modifier = Modifier.size(50.dp)
-            )
-            Image(painter = painterResource(id = R.drawable.settings_icon),
-                contentDescription = "",
-                modifier = Modifier.size(50.dp)
-            )
-        }
-    }
-
-}

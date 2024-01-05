@@ -10,7 +10,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -31,10 +31,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.example.athanapp.ui.screens.QiblaMenu
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.athanapp.ui.navigation.AthanApp
+import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
 
@@ -59,10 +63,10 @@ class MainActivity : ComponentActivity() {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 isLocationPermissionGranted =
-                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION]
+                    permissions[COARSE_LOCATION]
                         ?: isLocationPermissionGranted
                 isNotificationPermissionGranted =
-                    permissions[Manifest.permission.POST_NOTIFICATIONS]
+                    permissions[NOTIFICATION]
                         ?: isNotificationPermissionGranted
 
             }
@@ -89,14 +93,49 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    StartUp()
+
+                    App()
 
                 }
             }
         }
     }
+
+    enum class AthanClass {
+        Start,
+        Go,
+    }
+
+    @Composable fun App(
+    ) {
+        var userPreferencesRepository = (application as AthanApplication).userPreferencesRepository
+        val viewModel = PreferencesViewModel(userPreferencesRepository)
+        val uiState by viewModel.uiState.collectAsState()
+
+        val navController: NavHostController = rememberNavController()
+
+        var startDestination = if (uiState.isStartScreen) AthanClass.Start.name else AthanClass.Go.name
+
+        // If we don't need the start screen then still we can skip to getting the location
+//        if (!uiState.isStartScreen)  (application as AthanApplication).onLocationPermissionGranted()
+
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
+            composable(route = AthanClass.Go.name) {
+                AthanApp()
+            }
+            composable(route = AthanClass.Start.name) {
+                startUp(viewModel, navController)
+            }
+        }
+    }
     @Composable
-    fun StartUp() {
+    private fun startUp(
+        viewModel: PreferencesViewModel,
+        navController: NavHostController
+    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
                 painter = painterResource(id = R.drawable.rectangle),
@@ -115,7 +154,6 @@ class MainActivity : ComponentActivity() {
                     style = Typography.displayLarge,
                     color = Color.White
                 )
-
                 Spacer(modifier = Modifier.padding(7.dp))
                 Text(
                     text = "Please give a moment to get everything started.",
@@ -123,16 +161,13 @@ class MainActivity : ComponentActivity() {
                     color = Color(156, 180, 216),
                     textAlign = TextAlign.Center
                 )
-
                 Spacer(modifier = Modifier.padding(48.dp))
-
                 Button(onClick = { requestLocationAccess() }) {
                     Text(
                         text = "Give Location Access",
                         style = Typography.displayMedium,
                     )
                 }
-
                 Spacer(modifier = Modifier.padding(30.dp))
                 Image(
                     painter = painterResource(id = R.drawable.logo_placeholder),
@@ -151,11 +186,13 @@ class MainActivity : ComponentActivity() {
             contentAlignment = Alignment.BottomEnd
         ) {
             if (isLocationGranted) {
+
                 (application as AthanApplication).onLocationPermissionGranted()
 
                 Button(
                     onClick = {
-                        // Handle continue button click action here
+                        viewModel.requiresOnBoarding(false)
+                        navController.navigate(AthanClass.Go.name)
                     },
                     modifier = Modifier
                         .padding(8.dp)
@@ -170,23 +207,23 @@ class MainActivity : ComponentActivity() {
     private fun requestLocationAccess() {
         val isCoarseLocationPermissionGranted = ContextCompat.checkSelfPermission(
             this,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
         val isFineLocationPermissionGranted = ContextCompat.checkSelfPermission(
             this,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
         if (!isCoarseLocationPermissionGranted || !isFineLocationPermissionGranted) {
             val permissionRequest: MutableList<String> = ArrayList()
 
             if (!isCoarseLocationPermissionGranted) {
-                permissionRequest.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                permissionRequest.add(COARSE_LOCATION)
             }
 
             if (!isFineLocationPermissionGranted) {
-                permissionRequest.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                permissionRequest.add(FINE_LOCATION)
             }
             permissionLauncher.launch(permissionRequest.toTypedArray())
         } else {
@@ -194,10 +231,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Preview
-    @Composable
-    fun StartUpPreview() {
-        StartUp()
-    }
+//    @Preview
+//    @Composable
+//    fun StartUpPreview() {
+//        startUp(navController = NavHostController(this), uiState = uiState)
+//    }
 
 }
