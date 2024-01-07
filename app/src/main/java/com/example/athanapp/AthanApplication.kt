@@ -92,7 +92,7 @@ class AthanApplication : Application() {
 
     private suspend fun updateDatabase(appContainer: AppContainer) {
         val prayerDao = appContainer.prayersRepository
-        prayerDao.clearAllPrayers()
+//        prayerDao.clearAllPrayers()
 
         val prayerEntities = appContainer.athanObjectRepository.getAthanObjects()
 

@@ -31,12 +31,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.athanapp.ui.navigation.Athan
 import com.example.athanapp.ui.navigation.AthanApp
 import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.theme.Typography
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
 
+        // checks permissions, if location granted then it sets the boolean to true
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 isLocationPermissionGranted =
@@ -69,6 +72,9 @@ class MainActivity : ComponentActivity() {
                     permissions[NOTIFICATION]
                         ?: isNotificationPermissionGranted
 
+                if (isLocationPermissionGranted) {
+                    isLocationGranted = true
+                }
             }
 
         isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
@@ -76,6 +82,7 @@ class MainActivity : ComponentActivity() {
             NOTIFICATION
         ) == PackageManager.PERMISSION_GRANTED
 
+        // Not ideal
         if (!isLocationPermissionGranted) {
             val permissionRequest: MutableList<String> = ArrayList()
 
@@ -84,6 +91,8 @@ class MainActivity : ComponentActivity() {
             }
 
             permissionLauncher.launch(permissionRequest.toTypedArray())
+        } else {
+            (application as AthanApplication).onLocationPermissionGranted()
         }
 
         super.onCreate(savedInstanceState)
@@ -93,8 +102,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    val userPreferencesRepository = (application as AthanApplication).userPreferencesRepository
+                    val viewModel = PreferencesViewModel(userPreferencesRepository)
+                    val uiState by viewModel.uiState.collectAsState()
 
-                    App()
+
+                    if (!uiState.isStartScreen) {
+
+                        AthanApp()
+                    } else {
+                        App()
+                    }
 
                 }
             }
@@ -108,16 +126,18 @@ class MainActivity : ComponentActivity() {
 
     @Composable fun App(
     ) {
-        var userPreferencesRepository = (application as AthanApplication).userPreferencesRepository
+        val userPreferencesRepository = (application as AthanApplication).userPreferencesRepository
         val viewModel = PreferencesViewModel(userPreferencesRepository)
         val uiState by viewModel.uiState.collectAsState()
 
         val navController: NavHostController = rememberNavController()
 
-        var startDestination = if (uiState.isStartScreen) AthanClass.Start.name else AthanClass.Go.name
+        val startDestination = if (uiState.isStartScreen) AthanClass.Start.name else AthanClass.Go.name
 
         // If we don't need the start screen then still we can skip to getting the location
-//        if (!uiState.isStartScreen)  (application as AthanApplication).onLocationPermissionGranted()
+        // Also we need to make an option if the user turns off their wifi
+        if (!uiState.isStartScreen)  (application as AthanApplication).onLocationPermissionGranted()
+        // what does he even do?
 
         NavHost(
             navController = navController,
@@ -136,6 +156,7 @@ class MainActivity : ComponentActivity() {
         viewModel: PreferencesViewModel,
         navController: NavHostController
     ) {
+
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
                 painter = painterResource(id = R.drawable.rectangle),
@@ -226,6 +247,10 @@ class MainActivity : ComponentActivity() {
                 permissionRequest.add(FINE_LOCATION)
             }
             permissionLauncher.launch(permissionRequest.toTypedArray())
+
+            if (isCoarseLocationPermissionGranted) {
+                isLocationGranted = true
+            }
         } else {
             isLocationGranted = true
         }
@@ -234,7 +259,7 @@ class MainActivity : ComponentActivity() {
 //    @Preview
 //    @Composable
 //    fun StartUpPreview() {
-//        startUp(navController = NavHostController(this), uiState = uiState)
+//        startUp(navController = NavHostController(this))
 //    }
 
 }

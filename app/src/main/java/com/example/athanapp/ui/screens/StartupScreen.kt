@@ -38,18 +38,6 @@ fun Menu(modifier: Modifier = Modifier) {
                 .padding(50.dp)
                 .fillMaxSize(),
         ) {
-            Text(
-                text = "Welcome",
-                style = Typography.displayLarge,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.padding(7.dp))
-            Text(
-                text = "Please give a moment to get everything started.",
-                style = Typography.displayMedium,
-                color = Color(156, 180, 216)
-            )
 
 
         }
