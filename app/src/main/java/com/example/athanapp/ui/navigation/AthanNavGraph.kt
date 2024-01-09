@@ -37,7 +37,7 @@ enum class Athan {
 fun AthanApp(
 ) {
     val navController: NavHostController = rememberNavController()
-    var startDestination = Athan.Home.name
+    val startDestination = Athan.Home.name
 
     NavHost(
         navController = navController,
@@ -94,11 +94,11 @@ fun BottomNavigation(navController: NavHostController, modifier: Modifier) {
             )
 
             // Filler icon (Replace with the actual functionality)
-            ClickableImageWithText(
-                imageResId = R.drawable.filler_icon,
-                text = "Filler",
-                onClick = { /* Handle filler click action */ }
-            )
+//            ClickableImageWithText(
+//                imageResId = R.drawable.filler_icon,
+//                text = "Filler",
+//                onClick = { /* Handle filler click action */ }
+//            )
 
             // Settings icon
             ClickableImageWithText(

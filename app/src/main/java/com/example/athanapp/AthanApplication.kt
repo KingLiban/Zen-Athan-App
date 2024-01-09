@@ -4,7 +4,10 @@ import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -12,6 +15,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.example.athanapp.data.AppContainer
 import com.example.athanapp.data.DefaultAppContainer
 import com.example.athanapp.data.UserPreferencesRepository
+import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.tasks.Tasks
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -19,7 +23,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.Calendar
+import java.util.Locale
 
 private const val LAYOUT_PREFERENCE_NAME = "layout_preferences"
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
@@ -41,14 +47,15 @@ class AthanApplication : Application() {
     @OptIn(DelicateCoroutinesApi::class)
     fun onLocationPermissionGranted() {
         GlobalScope.launch(Dispatchers.Main) {
-            val location = getLocation()
-            initializeApp(location)
+            val (location, city) = getLocation()
+            initializeApp(location, city)
         }
     }
     @OptIn(DelicateCoroutinesApi::class)
-    private suspend fun getLocation(): Location? {
+    private suspend fun getLocation(): Pair<Location?, String?> {
         return GlobalScope.async(Dispatchers.IO) {
-            val fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this@AthanApplication)
+            val fusedLocationProviderClient =
+                LocationServices.getFusedLocationProviderClient(this@AthanApplication)
             return@async try {
                 if (ActivityCompat.checkSelfPermission(
                         this@AthanApplication,
@@ -58,20 +65,35 @@ class AthanApplication : Application() {
                         Manifest.permission.ACCESS_COARSE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    return@async null
+                    return@async Pair(null, null)
                 }
 
                 val locationTask = fusedLocationProviderClient.lastLocation
+                val location = Tasks.await<Location?>(locationTask)
 
-                return@async Tasks.await<Location?>(locationTask)
+                val cityName = if (location != null) {
+                    val geocoder = Geocoder(this@AthanApplication, Locale.getDefault())
+                    try {
+                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                        addresses?.firstOrNull()?.locality
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        null
+                    }
+                } else {
+                    null
+                }
+
+                Pair(location, cityName)
             } catch (e: Exception) {
                 e.printStackTrace()
-                null
+                Pair(null, null)
             }
         }.await()
     }
 
-    private suspend fun initializeApp(location: Location?) {
+
+    private suspend fun initializeApp(location: Location?, city: String?) {
         if (location != null) {
             val currentYear = Calendar.getInstance().get(Calendar.YEAR)
             println(currentYear)
@@ -82,9 +104,11 @@ class AthanApplication : Application() {
                 this,
                 years,
                 latitude,
-                longitude
+                longitude,
             )
             updateDatabase(appContainer)
+            val viewModel = PreferencesViewModel(userPreferencesRepository)
+            viewModel.setCityName(city)
         } else {
             println("Location is null")
         }
@@ -92,13 +116,15 @@ class AthanApplication : Application() {
 
     private suspend fun updateDatabase(appContainer: AppContainer) {
         val prayerDao = appContainer.prayersRepository
-//        prayerDao.clearAllPrayers()
 
         val prayerEntities = appContainer.athanObjectRepository.getAthanObjects()
-
-        for (prayerEntity in prayerEntities) {
-            prayerDao.insertPrayer(prayerEntity)
+        
+        if (prayerEntities.isNotEmpty()) {
+            for (prayerEntity in prayerEntities) {
+                prayerDao.insertPrayer(prayerEntity)
+            }
         }
+        
     }
 
 

@@ -1,5 +1,7 @@
 package com.example.athanapp.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +34,7 @@ import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeBody(
     modifier: Modifier = Modifier,
@@ -39,6 +42,11 @@ fun HomeBody(
 ) {
     val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
     val athanUiState by athanViewModel.uiState.collectAsState()
+    val currentPrayer = athanUiState.currentPrayer
+    val timeLeft = athanUiState.timeLeft
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+    val cityName = preferencesUiState.cityName
 
     Box(modifier = modifier.fillMaxSize()) {
         Image(
@@ -53,12 +61,12 @@ fun HomeBody(
                 .fillMaxSize(),
         ) {
             Text(
-                text = "Isha.",
+                text = "$currentPrayer",
                 style = Typography.displayLarge,
             )
             Spacer(modifier = Modifier.padding(2.dp))
             Text(
-                text = "Next Prayer in 2:00:19",
+                text = "Next Prayer in $timeLeft",
                 style = Typography.displayMedium,
                 color = Color.White
             )
@@ -72,7 +80,7 @@ fun HomeBody(
                     modifier = Modifier.padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text(text = "Today - Boston", color = Color.White, style = Typography.displayMedium)
+                    Text(text = "Today - $cityName", color = Color.White, style = Typography.displayMedium)
                     Spacer(modifier = Modifier.width(8.dp))
                     Image(painter = painterResource(id = R.drawable.location_symbol), contentDescription = "", Modifier.size(29.dp))
                 }
@@ -144,20 +152,21 @@ private fun PrayerTimeList(athanUiState: AthanViewModel.AthanUiState) {
 
 @Composable
 private fun PrayerRow(name: String, time: String) {
+    val timeWithoutTimeZone = time.substringBefore(" (")
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
         Text(text = name, modifier = Modifier.weight(1f), style = Typography.displayMedium)
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text = time, style = Typography.displayMedium)
+        Text(text = timeWithoutTimeZone, style = Typography.displayMedium)
     }
 }
 
 
 
-@Preview
-@Composable
-fun HomeScreenPreview() {
-    HomeBody(navHostController = rememberNavController())
-}
+//@Preview
+//@Composable
+//fun HomeScreenPreview() {
+//    HomeBody(navHostController = rememberNavController())
+//}

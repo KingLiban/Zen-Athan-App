@@ -10,6 +10,7 @@ import com.example.athanapp.AthanApplication
 import com.example.athanapp.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,9 +21,9 @@ class PreferencesViewModel(
 
     val uiState: StateFlow<PreferencesUiState> =
         userPreferencesRepository.isStartScreen
-            .map { isStartScreen ->
-            PreferencesUiState(isStartScreen)
-        }
+            .combine(userPreferencesRepository.selectedCity) { isStartScreen, cityName ->
+                PreferencesUiState(isStartScreen, cityName)
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -34,6 +35,13 @@ class PreferencesViewModel(
             userPreferencesRepository.saveLayoutPreference(isStartScreen)
         }
     }
+
+    fun setCityName(cityName: String?) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveSelectedCity(cityName)
+        }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -46,4 +54,5 @@ class PreferencesViewModel(
 
 data class PreferencesUiState(
     val isStartScreen: Boolean = true,
+    val cityName: String? = ""
 )

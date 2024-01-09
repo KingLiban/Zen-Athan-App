@@ -1,12 +1,10 @@
 package com.example.athanapp.data
 
 import android.content.Context
+import android.net.ConnectivityManager
 import com.example.athanapp.network.AthanApiService
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
@@ -19,15 +17,14 @@ class DefaultAppContainer(
     private val context: Context,
     private val years: List<Int>,
     private val latitude: Double,
-    private val longitude: Double
+    private val longitude: Double,
 ) : AppContainer {
 
-    private val baseUrl =
-        "https://api.aladhan.com/"
-
-    val moshi = Moshi.Builder()
+    private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
+
+    private val baseUrl = "https://api.aladhan.com/"
 
     val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(baseUrl)
@@ -38,19 +35,21 @@ class DefaultAppContainer(
         retrofit.create(AthanApiService::class.java)
     }
 
+    private val connectivityManager: ConnectivityManager by lazy {
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    }
+
     override val athanObjectRepository: AthanObjectRepository by lazy {
         AthanObjectNetworkRepository(
             retrofitService,
             years,
             latitude,
-            longitude
+            longitude,
+            context
         )
     }
 
     override val prayersRepository: PrayersRepository by lazy {
         OfflinePrayersRepository(AthanDatabase.getDatabase(context).prayerDao())
     }
-
-
-
 }
