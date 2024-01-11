@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PrayerDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(prayerEntity: PrayerEntity)
+    suspend fun insertOffline(prayerEntity: PrayerEntity)
 
-    @Query("DELETE FROM prayers")
-    suspend fun clearAllPrayers()
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOnline(prayerEntity: PrayerEntity)
 
     @Query("SELECT * from prayers where readable = :date")
     fun getPrayer(date: String): Flow<PrayerEntity>
+
 
 }

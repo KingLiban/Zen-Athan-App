@@ -5,9 +5,9 @@ import com.example.athanapp.network.PrayerEntity
 import kotlinx.coroutines.flow.Flow
 
 interface PrayersRepository {
-    suspend fun insertPrayer(prayerData: PrayerEntity)
+    suspend fun insertPrayerOnline(prayerData: PrayerEntity)
 
-    suspend fun clearAllPrayers()
+    suspend fun insertPrayerOffline(prayerData: PrayerEntity)
 
     fun getPrayer(data: String): Flow<PrayerEntity>
 }

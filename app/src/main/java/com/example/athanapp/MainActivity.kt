@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -42,15 +43,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.athanapp.data.DefaultAppContainer
 import com.example.athanapp.ui.navigation.AthanApp
 import com.example.athanapp.ui.screens.Menu
 import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 
 class MainActivity : ComponentActivity() {
@@ -78,10 +85,6 @@ class MainActivity : ComponentActivity() {
                     permissions[FINE_LOCATION] ?: isLocationPermissionGranted
                 isNotificationPermissionGranted =
                     permissions[NOTIFICATION] ?: isNotificationPermissionGranted
-
-                if (isLocationPermissionGranted) {
-                    isLocationGranted = true
-                }
             }
 
         isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
@@ -96,6 +99,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+
                     App()
                 }
             }
@@ -117,6 +121,7 @@ class MainActivity : ComponentActivity() {
         val navController: NavHostController = rememberNavController()
 
         var appStatus by remember { mutableStateOf(AppStatus.LOADING) }
+
 
         LaunchedEffect(uiState) {
             appStatus = when {

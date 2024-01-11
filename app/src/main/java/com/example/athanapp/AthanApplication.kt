@@ -69,7 +69,7 @@ class AthanApplication : Application() {
                 }
 
                 val locationTask = fusedLocationProviderClient.lastLocation
-                val location = Tasks.await<Location?>(locationTask)
+                val location = Tasks.await(locationTask)
 
                 val cityName = if (location != null) {
                     val geocoder = Geocoder(this@AthanApplication, Locale.getDefault())
@@ -100,15 +100,21 @@ class AthanApplication : Application() {
             val (latitude, longitude) = Pair(location.latitude, location.longitude)
             val years = listOf(currentYear, currentYear + 1, currentYear + 2)
 
+            println("latitude and longitude:")
+            println(location.latitude)
+            println(location.longitude)
+            println("city name:")
+            println(city)
+
             appContainer = DefaultAppContainer(
                 this,
                 years,
                 latitude,
                 longitude,
             )
-            updateDatabase(appContainer)
             val viewModel = PreferencesViewModel(userPreferencesRepository)
             viewModel.setCityName(city)
+            updateDatabase(appContainer)
         } else {
             println("Location is null")
         }
@@ -118,10 +124,17 @@ class AthanApplication : Application() {
         val prayerDao = appContainer.prayersRepository
 
         val prayerEntities = appContainer.athanObjectRepository.getAthanObjects()
-        
+
+        println("is prayer entities not empty?")
+        println(prayerEntities.isNotEmpty())
+
         if (prayerEntities.isNotEmpty()) {
             for (prayerEntity in prayerEntities) {
-                prayerDao.insertPrayer(prayerEntity)
+                prayerDao.insertPrayerOnline(prayerData = prayerEntity)
+            }
+        } else {
+            for (prayerEntity in prayerEntities) {
+                prayerDao.insertPrayerOffline(prayerData = prayerEntity)
             }
         }
         

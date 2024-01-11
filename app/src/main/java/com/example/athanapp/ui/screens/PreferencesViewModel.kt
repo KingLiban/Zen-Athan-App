@@ -42,6 +42,18 @@ class PreferencesViewModel(
         }
     }
 
+    fun onGeneralSettingsClicked() {
+        TODO("Not yet implemented")
+    }
+
+    fun onPrayerTimesClicked() {
+        TODO("Not yet implemented")
+    }
+
+    fun onNotificationsClicked() {
+        TODO("Not yet implemented")
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

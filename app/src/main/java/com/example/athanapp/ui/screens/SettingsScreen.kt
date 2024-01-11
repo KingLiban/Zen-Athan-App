@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,8 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,20 +27,24 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
 import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
 
+
 @Composable()
 fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostController) {
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+
     Box(modifier = modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = R.drawable.rectangle),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds // This makes the image scale to the size of the Box
+            contentScale = ContentScale.FillBounds
         )
         Column(
             modifier = Modifier
@@ -59,9 +70,13 @@ fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostContro
                 modifier = Modifier.size(136.dp)
             )
             Spacer(modifier = Modifier.padding(20.dp))
-            SettingCards()
+            SettingCard("General Settings", false, preferencesViewModel::onGeneralSettingsClicked)
+            Spacer(modifier = Modifier.padding(3.dp))
+            SettingCard("Prayer Times", false, preferencesViewModel::onPrayerTimesClicked)
+            Spacer(modifier = Modifier.padding(3.dp))
+            SettingCard("Notifications", false, preferencesViewModel::onNotificationsClicked)
             Spacer(modifier = Modifier.padding(20.dp))
-            SettingCard("About", {}, true)
+            SettingCard("About", true, {})
         }
         BottomNavigation(
             modifier = Modifier
@@ -73,12 +88,16 @@ fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostContro
 }
 
 @Composable
-private fun SettingCard(content: String, clickAction: () -> Unit, boolean: Boolean) {
+private fun SettingCard(content: String, boolean: Boolean, clickAction: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .padding(vertical = 8.dp)
             .fillMaxWidth()
-            .clickable { clickAction.invoke() }, // Adding clickable modifier
+            .clickable {
+                expanded = !expanded
+            },
         elevation = CardDefaults.cardElevation(
             defaultElevation = 4.dp
         ),
@@ -116,17 +135,50 @@ private fun SettingCard(content: String, clickAction: () -> Unit, boolean: Boole
             )
         }
 
+        if (expanded) {
+            when (content) {
+                "General Settings" -> GeneralSettingsExpanded()
+                "Prayer Times" -> PrayerTimesExpanded()
+                "Notifications" -> NotificationsExpanded()
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun GeneralSettingsExpanded() {
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+
+    var checked by remember { mutableStateOf(false) }
+    Row {
+        Checkbox(checked = checked, onCheckedChange = { checked = it })
+        Text(text = "Dark Mode")
     }
 }
 
 @Composable
-private fun SettingCards() {
-    val contents = listOf("General Settings", "Prayer Times", "Notifications")
+private fun PrayerTimesExpanded() {
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
 
-    contents.forEach { content ->
-        SettingCard(content = content, clickAction = {
-        }, false)
-        Spacer(modifier = Modifier.padding(3.dp))
+    var checked by remember { mutableStateOf(false) }
+    Row {
+        Checkbox(checked = checked, onCheckedChange = { checked = it })
+        Text(text = "12 Hour Time")
+    }
+}
+
+@Composable
+private fun NotificationsExpanded() {
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+
+    var checked by remember { mutableStateOf(false) }
+    Row {
+        Checkbox(checked = checked, onCheckedChange = { checked = it })
+        Text(text = "Notifications")
     }
 }
 

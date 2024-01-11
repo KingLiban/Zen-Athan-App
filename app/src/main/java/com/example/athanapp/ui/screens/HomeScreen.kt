@@ -61,7 +61,7 @@ fun HomeBody(
                 .fillMaxSize(),
         ) {
             Text(
-                text = "$currentPrayer",
+                text = currentPrayer,
                 style = Typography.displayLarge,
             )
             Spacer(modifier = Modifier.padding(2.dp))

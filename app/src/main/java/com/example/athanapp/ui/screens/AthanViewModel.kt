@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.Calendar
 import java.util.Date
@@ -78,17 +80,17 @@ class AthanViewModel(private val prayersRepository: PrayersRepository) : ViewMod
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun getTimeUntilNextPrayer(prayerEntity: PrayerEntity): String {
-        val currentTime = LocalTime.now()
+        val currentTime = LocalDateTime.now()
         val prayerTimes = listOf(
-            "Fajr" to LocalTime.parse(prayerEntity.fajr.split(" ")[0]),
-            "Sunrise" to LocalTime.parse(prayerEntity.sunrise.split(" ")[0]),
-            "Dhuhr" to LocalTime.parse(prayerEntity.dhuhr.split(" ")[0]),
-            "Asr" to LocalTime.parse(prayerEntity.asr.split(" ")[0]),
-            "Maghrib" to LocalTime.parse(prayerEntity.maghrib.split(" ")[0]),
-            "Isha" to LocalTime.parse(prayerEntity.isha.split(" ")[0])
+            "Fajr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.fajr.split(" ")[0])),
+            "Sunrise" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.sunrise.split(" ")[0])),
+            "Dhuhr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.dhuhr.split(" ")[0])),
+            "Asr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.asr.split(" ")[0])),
+            "Maghrib" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.maghrib.split(" ")[0])),
+            "Isha" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.isha.split(" ")[0]))
         ).sortedBy { it.second }
 
-        var nextPrayerTime: LocalTime? = null
+        var nextPrayerTime: LocalDateTime? = null
         for ((_, time) in prayerTimes) {
             if (time > currentTime) {
                 nextPrayerTime = time
@@ -99,7 +101,8 @@ class AthanViewModel(private val prayersRepository: PrayersRepository) : ViewMod
         val timeLeft = if (nextPrayerTime != null) {
             Duration.between(currentTime, nextPrayerTime)
         } else {
-            Duration.between(currentTime, LocalTime.parse(prayerEntity.fajr.split(" ")[0]))
+            val nextDayFajr = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.parse(prayerEntity.fajr.split(" ")[0]))
+            Duration.between(currentTime, nextDayFajr)
         }
 
         val hours = timeLeft.toHoursPart()
