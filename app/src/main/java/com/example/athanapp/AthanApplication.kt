@@ -4,10 +4,12 @@ import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Geocoder
 import android.location.Location
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -42,6 +44,7 @@ class AthanApplication : Application() {
         super.onCreate()
         onLocationPermissionGranted()
         userPreferencesRepository = UserPreferencesRepository(dataStore)
+
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -92,7 +95,6 @@ class AthanApplication : Application() {
         }.await()
     }
 
-
     private suspend fun initializeApp(location: Location?, city: String?) {
         if (location != null) {
             val currentYear = Calendar.getInstance().get(Calendar.YEAR)
@@ -100,11 +102,8 @@ class AthanApplication : Application() {
             val (latitude, longitude) = Pair(location.latitude, location.longitude)
             val years = listOf(currentYear, currentYear + 1, currentYear + 2)
 
-            println("latitude and longitude:")
-            println(location.latitude)
-            println(location.longitude)
-            println("city name:")
-            println(city)
+            println("latitude and longitude: $latitude, $longitude")
+            println("city name: $city")
 
             appContainer = DefaultAppContainer(
                 this,
@@ -114,6 +113,8 @@ class AthanApplication : Application() {
             )
             val viewModel = PreferencesViewModel(userPreferencesRepository)
             viewModel.setCityName(city)
+
+            setQiblaDirection(appContainer, viewModel)
             updateDatabase(appContainer)
         } else {
             println("Location is null")
@@ -140,6 +141,17 @@ class AthanApplication : Application() {
         
     }
 
+    private suspend fun setQiblaDirection(
+        appContainer: AppContainer,
+        viewModel: PreferencesViewModel
+    ) {
+        val qiblaData = appContainer.athanObjectRepository.getQiblaData()
 
+        if (qiblaData.latitude != 0.0 || qiblaData.longitude != 0.0) {
+            val coordinates = Pair(qiblaData.latitude, qiblaData.longitude)
+            val direction = qiblaData.direction
+            viewModel.saveQiblaDirection(coordinates, direction)
+        }
+    }
 
 }

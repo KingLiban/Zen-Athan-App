@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -27,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
@@ -38,10 +40,31 @@ import com.example.athanapp.ui.theme.Typography
 @Composable()
 fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostController) {
     val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+    val darkMode = preferencesUiState.isDarkMode
+
+    val background = if (darkMode) {
+        R.drawable.rectangle
+    } else {
+        R.drawable.light_background
+    }
+
+    val textColor = if (darkMode) {
+        Typography.displayMedium.color
+    } else {
+        Color(31, 33, 56)
+    }
+
+    val containerColor = if (darkMode) {
+        Color(156, 180, 216)
+    } else {
+        Color(213, 182, 216)
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
+
         Image(
-            painter = painterResource(id = R.drawable.rectangle),
+            painter = painterResource(id = background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.FillBounds
@@ -53,7 +76,7 @@ fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostContro
         ) {
             Text(
                 text = "Settings",
-                style = Typography.displayMedium,
+                style = Typography.displayLarge,
                 color = Color.White
             )
         }
@@ -63,20 +86,20 @@ fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostContro
                 .padding(50.dp)
                 .fillMaxSize(),
         ) {
-            Spacer(modifier = Modifier.padding(30.dp))
+            Spacer(modifier = Modifier.padding(40.dp))
             Image(
                 painter = painterResource(id = R.drawable.logo_placeholder),
                 contentDescription = "",
                 modifier = Modifier.size(136.dp)
             )
             Spacer(modifier = Modifier.padding(20.dp))
-            SettingCard("General Settings", false, preferencesViewModel::onGeneralSettingsClicked)
+            SettingCard("General Settings", false, containerColor, textColor)
             Spacer(modifier = Modifier.padding(3.dp))
-            SettingCard("Prayer Times", false, preferencesViewModel::onPrayerTimesClicked)
-            Spacer(modifier = Modifier.padding(3.dp))
-            SettingCard("Notifications", false, preferencesViewModel::onNotificationsClicked)
+            SettingCard("Prayer Times", false, containerColor, textColor)
+//            Spacer(modifier = Modifier.padding(3.dp))
+//            SettingCard("Notifications", false, preferencesViewModel::onNotificationsClicked)
             Spacer(modifier = Modifier.padding(20.dp))
-            SettingCard("About", true, {})
+            SettingCard("About", true, containerColor, textColor)
         }
         BottomNavigation(
             modifier = Modifier
@@ -88,7 +111,7 @@ fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostContro
 }
 
 @Composable
-private fun SettingCard(content: String, boolean: Boolean, clickAction: () -> Unit) {
+private fun SettingCard(content: String, boolean: Boolean, containerColor: Color, textColor: Color) {
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -102,7 +125,7 @@ private fun SettingCard(content: String, boolean: Boolean, clickAction: () -> Un
             defaultElevation = 4.dp
         ),
         colors = CardDefaults.cardColors(
-            containerColor = Color(156, 180, 216)
+            containerColor = containerColor
         )
     ) {
         if (boolean) {
@@ -121,6 +144,7 @@ private fun SettingCard(content: String, boolean: Boolean, clickAction: () -> Un
                 Text(
                     text = content,
                     style = Typography.displayMedium,
+                    color = textColor,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
@@ -151,10 +175,17 @@ private fun GeneralSettingsExpanded() {
     val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
 
-    var checked by remember { mutableStateOf(false) }
-    Row {
-        Checkbox(checked = checked, onCheckedChange = { checked = it })
-        Text(text = "Dark Mode")
+    val checked = preferencesUiState.isDarkMode
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { preferencesViewModel.onGeneralSettingsClicked(checked) }
+        )
+        Text(
+            text = "Dark Mode",
+        )
     }
 }
 
@@ -163,12 +194,24 @@ private fun PrayerTimesExpanded() {
     val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
 
-    var checked by remember { mutableStateOf(false) }
-    Row {
-        Checkbox(checked = checked, onCheckedChange = { checked = it })
-        Text(text = "12 Hour Time")
+    val checked = preferencesUiState.is12Hour
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { preferencesViewModel.onPrayerTimesClicked(checked) }
+        )
+        Text(
+            text = "12 Hour Time",
+        )
     }
 }
+
+//@Composable
+//private fun AboutExpanded() {
+//    Text(text =  )
+//}
 
 @Composable
 private fun NotificationsExpanded() {

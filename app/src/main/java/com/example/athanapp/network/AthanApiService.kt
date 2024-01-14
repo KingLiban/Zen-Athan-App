@@ -11,5 +11,12 @@ interface AthanApiService {
         @Query("latitude") latitude: Double,
         @Query("longitude") longitude: Double
     ): PrayerData
+
+    @GET("v1/qibla/{latitude}/{longitude}")
+    suspend fun getQiblaInfo(
+        @Path("latitude") latitude: Double,
+        @Path("longitude") longitude: Double
+    ): ApiResponse
+
 }
 

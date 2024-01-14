@@ -6,13 +6,16 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.example.athanapp.network.ApiResponse
 import com.example.athanapp.network.AthanApiService
 import com.example.athanapp.network.PrayerData
 import com.example.athanapp.network.PrayerEntity
+import com.example.athanapp.network.QiblaData
 
 
 interface AthanObjectRepository {
     suspend fun getAthanObjects(): List<PrayerEntity>
+    suspend fun getQiblaData(): QiblaData
 }
 class AthanObjectNetworkRepository(
     private val athanApiService: AthanApiService,
@@ -22,6 +25,7 @@ class AthanObjectNetworkRepository(
     private val context: Context
 ) : AthanObjectRepository {
 
+    private lateinit var qiblaData: QiblaData
     @RequiresApi(Build.VERSION_CODES.M)
     override suspend fun getAthanObjects(): List<PrayerEntity> {
         val list: MutableList<PrayerEntity> = mutableListOf()
@@ -32,6 +36,16 @@ class AthanObjectNetworkRepository(
             }
         }
         return list
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    override suspend fun getQiblaData(): QiblaData {
+        if (isNetworkConnected(context)) {
+            val apiService = athanApiService.getQiblaInfo(latitude, longitude)
+            qiblaData = apiService.data
+        }
+
+        return qiblaData
     }
 
     @RequiresApi(Build.VERSION_CODES.M)

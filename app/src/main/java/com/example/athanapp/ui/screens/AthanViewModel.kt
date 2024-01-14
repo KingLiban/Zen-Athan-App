@@ -67,7 +67,7 @@ class AthanViewModel(private val prayersRepository: PrayersRepository) : ViewMod
             "Isha" to prayerEntity.isha
         )
 
-        var currentPrayer = "Fajr"
+        var currentPrayer = "Isha"
         for ((prayer, time) in prayerTimes) {
             if (time > currentTime) {
                 break
@@ -101,7 +101,8 @@ class AthanViewModel(private val prayersRepository: PrayersRepository) : ViewMod
         val timeLeft = if (nextPrayerTime != null) {
             Duration.between(currentTime, nextPrayerTime)
         } else {
-            val nextDayFajr = LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.parse(prayerEntity.fajr.split(" ")[0]))
+            val nextDayFajr = LocalDateTime.of(LocalDate.now().plusDays(1),
+                LocalTime.parse(prayerEntity.fajr.split(" ")[0]))
             Duration.between(currentTime, nextDayFajr)
         }
 

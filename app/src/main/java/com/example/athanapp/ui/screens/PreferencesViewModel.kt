@@ -11,7 +11,6 @@ import com.example.athanapp.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -20,10 +19,25 @@ class PreferencesViewModel(
 ) : ViewModel() {
 
     val uiState: StateFlow<PreferencesUiState> =
-        userPreferencesRepository.isStartScreen
-            .combine(userPreferencesRepository.selectedCity) { isStartScreen, cityName ->
-                PreferencesUiState(isStartScreen, cityName)
-            }
+        combine(
+            userPreferencesRepository.isStartScreen,
+            userPreferencesRepository.selectedCity,
+            userPreferencesRepository.isDarkMode,
+            userPreferencesRepository.is12Hour,
+            userPreferencesRepository.latitude,
+            userPreferencesRepository.longitude,
+            userPreferencesRepository.direction
+        ) { values ->
+            PreferencesUiState(
+                isStartScreen = values[0] as Boolean,
+                cityName = values[1] as String,
+                isDarkMode = values[2] as Boolean,
+                is12Hour = values[3] as Boolean,
+                latitude = values[4] as Double,
+                longitude = values[5] as Double,
+                direction = values[6] as Double
+            )
+        }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -42,16 +56,26 @@ class PreferencesViewModel(
         }
     }
 
-    fun onGeneralSettingsClicked() {
-        TODO("Not yet implemented")
+    fun onGeneralSettingsClicked(checked: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveDarkModePreferences(!checked)
+        }
     }
 
-    fun onPrayerTimesClicked() {
-        TODO("Not yet implemented")
+    fun onPrayerTimesClicked(checked: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveTimePreferences(!checked)
+        }
     }
 
-    fun onNotificationsClicked() {
-        TODO("Not yet implemented")
+//    fun onNotificationsClicked() {
+//        TODO("Not yet implemented")
+//    }
+
+    fun saveQiblaDirection(coordinates: Pair<Double, Double>, direction: Double) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveCoordinates(coordinates, direction)
+        }
     }
 
     companion object {
@@ -66,5 +90,10 @@ class PreferencesViewModel(
 
 data class PreferencesUiState(
     val isStartScreen: Boolean = true,
-    val cityName: String? = ""
+    val cityName: String? = "",
+    val isDarkMode: Boolean = true,
+    val is12Hour: Boolean = false,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val direction: Double = 0.0
 )

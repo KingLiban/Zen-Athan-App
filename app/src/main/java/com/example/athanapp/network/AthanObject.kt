@@ -57,7 +57,19 @@ data class Timings(
     val isha: String,
 )
 
+@JsonClass(generateAdapter = true)
+data class ApiResponse(
+    @Json(name = "code") val code: Int,
+    @Json(name = "status") val status: String,
+    @Json(name = "data") val data: QiblaData
+)
 
+@JsonClass(generateAdapter = true)
+data class QiblaData(
+    @Json(name = "latitude") val latitude: Double,
+    @Json(name = "longitude") val longitude: Double,
+    @Json(name = "direction") val direction: Double
+)
 
 
 

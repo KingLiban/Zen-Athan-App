@@ -3,8 +3,12 @@ package com.example.athanapp
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.location.Location
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -43,24 +47,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.athanapp.data.DefaultAppContainer
 import com.example.athanapp.ui.navigation.AthanApp
 import com.example.athanapp.ui.screens.Menu
 import com.example.athanapp.ui.screens.PreferencesViewModel
+import com.example.athanapp.ui.screens.SensorViewModel
 import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import java.util.Calendar
 
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), SensorEventListener {
 
     companion object {
         private const val COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION
@@ -75,14 +75,32 @@ class MainActivity : ComponentActivity() {
 
     private var isLocationGranted by mutableStateOf(false)
 
-    @SuppressLint("SuspiciousIndentation")
+    private var mSensorManager: SensorManager? = null
+    private var mAccelerometer: Sensor? = null
+    private var mMagnetometer: Sensor? = null
+    private var mGravity: Sensor? = null
+
+    private var haveGravity = false
+    private var haveAccelerometer = false
+    private var haveMagnetometer = false
+
+    private var gData = FloatArray(3) // accelerometer
+    private var mData = FloatArray(3) // magnetometer
+    private val rMat = FloatArray(9)
+    private val iMat = FloatArray(9)
+    private val orientation = FloatArray(3)
+
+
+    private var sensorViewModel = SensorViewModel()
+
+    @SuppressLint("SuspiciousIndentation", "SourceLockedOrientationActivity")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 isLocationPermissionGranted =
                     permissions[COARSE_LOCATION] ?: isLocationPermissionGranted
-                    permissions[FINE_LOCATION] ?: isLocationPermissionGranted
+                permissions[FINE_LOCATION] ?: isLocationPermissionGranted
                 isNotificationPermissionGranted =
                     permissions[NOTIFICATION] ?: isNotificationPermissionGranted
             }
@@ -92,6 +110,22 @@ class MainActivity : ComponentActivity() {
             NOTIFICATION
         ) == PackageManager.PERMISSION_GRANTED
 
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        mGravity = mSensorManager!!.getDefaultSensor(Sensor.TYPE_GRAVITY)
+        haveGravity = mSensorManager!!.registerListener(this, mGravity, SensorManager.SENSOR_DELAY_GAME)
+
+        mAccelerometer = mSensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        haveAccelerometer = mSensorManager!!.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME)
+
+        mMagnetometer = mSensorManager!!.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        haveMagnetometer = mSensorManager!!.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_GAME)
+
+        if (haveGravity) {
+            mSensorManager!!.unregisterListener(this, mAccelerometer)
+        }
+
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
@@ -99,12 +133,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-
-                    App()
+                    App(sensorViewModel)
                 }
             }
         }
     }
+
 
     enum class AppStatus {
         LOADING,
@@ -113,9 +147,8 @@ class MainActivity : ComponentActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @Composable fun App() {
-        val userPreferencesRepository = (application as AthanApplication).userPreferencesRepository
-        val viewModel = PreferencesViewModel(userPreferencesRepository)
+    @Composable fun App(sensorViewModel: SensorViewModel) {
+        val viewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
         val uiState by viewModel.uiState.collectAsState()
 
         val navController: NavHostController = rememberNavController()
@@ -144,7 +177,7 @@ class MainActivity : ComponentActivity() {
                 Menu()
             }
             composable(route = AppStatus.GO.name) {
-                AthanApp()
+                AthanApp(sensorViewModel)
             }
             composable(route = AppStatus.START.name) {
                 StartUp(viewModel, navController)
@@ -297,10 +330,55 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//    @Preview
-//    @Composable
-//    fun StartUpPreview() {
-//        startUp(navController = NavHostController(this))
-//    }
+    override fun onResume() {
+        super.onResume()
+        mAccelerometer?.let {
+            mSensorManager?.registerListener(
+                this,
+                it,
+                SensorManager.SENSOR_DELAY_GAME,
+                SensorManager.SENSOR_DELAY_UI
+            )
+        }
+
+        mMagnetometer?.let {
+            mSensorManager?.registerListener(
+                this,
+                it,
+                SensorManager.SENSOR_DELAY_GAME,
+                SensorManager.SENSOR_DELAY_UI
+            )
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+         mSensorManager?.unregisterListener(this)
+    }
+
+    override fun onSensorChanged(event: SensorEvent) {
+        var data: FloatArray
+        when (event.sensor.type) {
+            Sensor.TYPE_GRAVITY -> gData = event.values.clone()
+            Sensor.TYPE_ACCELEROMETER -> gData = event.values.clone()
+            Sensor.TYPE_MAGNETIC_FIELD -> mData = event.values.clone()
+            else -> return
+        }
+
+        if (SensorManager.getRotationMatrix(rMat, iMat, gData, mData)) {
+            val mAzimuth = ((Math.toDegrees(
+                SensorManager.getOrientation(
+                    rMat,
+                    orientation
+                )[0].toDouble()
+            ) + 360).toInt() % 360).toFloat()
+
+            sensorViewModel.updateAzimuth(mAzimuth)
+        }
+    }
+
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    }
 
 }

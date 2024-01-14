@@ -24,14 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
 import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -48,9 +48,29 @@ fun HomeBody(
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
     val cityName = preferencesUiState.cityName
 
+    val darkMode = preferencesUiState.isDarkMode
+
+    val background = if (darkMode) {
+        R.drawable.blue_background
+    } else {
+        R.drawable.light_background_main
+    }
+
+    val textColor = if (darkMode) {
+        Typography.displayMedium.color
+    } else {
+        Color(31, 33, 56)
+    }
+
+    val containerColor = if (darkMode) {
+        Color(156, 180, 216)
+    } else {
+        Color(213, 182, 216)
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(id = R.drawable.blue_background),
+            painter = painterResource(id = background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.FillBounds
@@ -63,6 +83,7 @@ fun HomeBody(
             Text(
                 text = currentPrayer,
                 style = Typography.displayLarge,
+                color = textColor
             )
             Spacer(modifier = Modifier.padding(2.dp))
             Text(
@@ -73,7 +94,7 @@ fun HomeBody(
             Spacer(modifier = Modifier.padding(32.dp))
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                PrayerTimeList(athanUiState)
+                PrayerTimeList(athanUiState, textColor, containerColor)
 
                 // City and Location Icon
                 Row(
@@ -96,7 +117,11 @@ fun HomeBody(
 }
 
 @Composable
-private fun PrayerTimeList(athanUiState: AthanViewModel.AthanUiState) {
+private fun PrayerTimeList(
+    athanUiState: AthanViewModel.AthanUiState,
+    textColor: Color,
+    containerColor: Color
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -110,12 +135,13 @@ private fun PrayerTimeList(athanUiState: AthanViewModel.AthanUiState) {
                 defaultElevation = 4.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = Color(156, 180, 216)
+                containerColor = containerColor
             )
         ) {
             Text(
                 text = athanUiState.prayerEntity.readable,
                 style = Typography.displayMedium,
+                color = textColor,
                 modifier = Modifier
                     .padding(16.dp)
                     .align(Alignment.CenterHorizontally)
@@ -131,18 +157,18 @@ private fun PrayerTimeList(athanUiState: AthanViewModel.AthanUiState) {
                 defaultElevation = 4.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = Color(156, 180, 216)
+                containerColor = containerColor
             )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                PrayerRow("Fajr", athanUiState.prayerEntity.fajr)
-                PrayerRow("Sunrise", athanUiState.prayerEntity.sunrise)
-                PrayerRow("Dhuhr", athanUiState.prayerEntity.dhuhr)
-                PrayerRow("Asr", athanUiState.prayerEntity.asr)
-                PrayerRow("Maghrib", athanUiState.prayerEntity.maghrib)
-                PrayerRow("Isha", athanUiState.prayerEntity.isha)
+                PrayerRow("Fajr", athanUiState.prayerEntity.fajr, textColor)
+                PrayerRow("Sunrise", athanUiState.prayerEntity.sunrise, textColor)
+                PrayerRow("Dhuhr", athanUiState.prayerEntity.dhuhr, textColor)
+                PrayerRow("Asr", athanUiState.prayerEntity.asr, textColor)
+                PrayerRow("Maghrib", athanUiState.prayerEntity.maghrib, textColor)
+                PrayerRow("Isha", athanUiState.prayerEntity.isha, textColor)
             }
         }
 
@@ -151,18 +177,33 @@ private fun PrayerTimeList(athanUiState: AthanViewModel.AthanUiState) {
 }
 
 @Composable
-private fun PrayerRow(name: String, time: String) {
+private fun PrayerRow(name: String, time: String, textColor: Color) {
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
     val timeWithoutTimeZone = time.substringBefore(" (")
+
+    val is12Hour = preferencesUiState.is12Hour
+
+    val timeFormat24 = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val timeFormat12 = SimpleDateFormat("h:mm a", Locale.getDefault())
+    var formattedTime = timeWithoutTimeZone
+
+    if (timeWithoutTimeZone.isNotEmpty()) {
+        val date = timeFormat24.parse(timeWithoutTimeZone)
+        if (is12Hour && date != null) {
+            formattedTime = timeFormat12.format(date)
+        }
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 8.dp)
     ) {
-        Text(text = name, modifier = Modifier.weight(1f), style = Typography.displayMedium)
+        Text(text = name, modifier = Modifier.weight(1f), style = Typography.displayMedium, color = textColor)
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text = timeWithoutTimeZone, style = Typography.displayMedium)
+        Text(text = formattedTime, style = Typography.displayMedium)
     }
 }
-
 
 
 //@Preview

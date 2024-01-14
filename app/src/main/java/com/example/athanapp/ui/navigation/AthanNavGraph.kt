@@ -1,5 +1,7 @@
 package com.example.athanapp.ui.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
 import com.example.athanapp.ui.screens.HomeBody
 import com.example.athanapp.ui.screens.QiblaMenu
+import com.example.athanapp.ui.screens.SensorViewModel
 import com.example.athanapp.ui.screens.SettingsPage
 
 enum class Athan {
@@ -33,9 +36,9 @@ enum class Athan {
     Settings
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AthanApp(
-) {
+fun AthanApp(sensorViewModel: SensorViewModel) {
     val navController: NavHostController = rememberNavController()
     val startDestination = Athan.Home.name
 
@@ -53,7 +56,8 @@ fun AthanApp(
         composable(route = Athan.Qibla.name) {
             QiblaMenu(
                 modifier = Modifier,
-                navController
+                navController,
+                sensorViewModel
             )
         }
 
