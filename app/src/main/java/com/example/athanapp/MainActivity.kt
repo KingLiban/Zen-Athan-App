@@ -26,8 +26,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -53,15 +56,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.ui.navigation.AthanApp
-import com.example.athanapp.ui.screens.Menu
 import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.screens.SensorViewModel
+import com.example.athanapp.ui.screens.Splash
 import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
 
 
 class MainActivity : ComponentActivity(), SensorEventListener {
-
     companion object {
         private const val COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION
         private const val FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
@@ -72,9 +74,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
     private var isLocationPermissionGranted = false
     private var isNotificationPermissionGranted = false
-
-    private var isLocationGranted by mutableStateOf(false)
-
     private var mSensorManager: SensorManager? = null
     private var mAccelerometer: Sensor? = null
     private var mMagnetometer: Sensor? = null
@@ -84,12 +83,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var haveAccelerometer = false
     private var haveMagnetometer = false
 
-    private var gData = FloatArray(3) // accelerometer
-    private var mData = FloatArray(3) // magnetometer
+    private var gData = FloatArray(3)
+    private var mData = FloatArray(3)
     private val rMat = FloatArray(9)
     private val iMat = FloatArray(9)
     private val orientation = FloatArray(3)
-
 
     private var sensorViewModel = SensorViewModel()
 
@@ -99,26 +97,22 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 isLocationPermissionGranted =
-                    permissions[COARSE_LOCATION] ?: isLocationPermissionGranted
-                permissions[FINE_LOCATION] ?: isLocationPermissionGranted
+                    permissions[COARSE_LOCATION] == true || permissions[FINE_LOCATION] == true || isLocationPermissionGranted
                 isNotificationPermissionGranted =
                     permissions[NOTIFICATION] ?: isNotificationPermissionGranted
+                if (isLocationPermissionGranted) {
+                    println("Location permission granted")
+                    (application as AthanApplication).onLocationPermissionGranted()
+                }
             }
-
-        isNotificationPermissionGranted = ContextCompat.checkSelfPermission(
-            this,
-            NOTIFICATION
-        ) == PackageManager.PERMISSION_GRANTED
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mGravity = mSensorManager!!.getDefaultSensor(Sensor.TYPE_GRAVITY)
         haveGravity = mSensorManager!!.registerListener(this, mGravity, SensorManager.SENSOR_DELAY_GAME)
-
         mAccelerometer = mSensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         haveAccelerometer = mSensorManager!!.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME)
-
         mMagnetometer = mSensorManager!!.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
         haveMagnetometer = mSensorManager!!.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_GAME)
 
@@ -140,25 +134,25 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
 
-    enum class AppStatus {
+    private enum class AppStatus {
         LOADING,
         START,
         GO
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    @Composable fun App(sensorViewModel: SensorViewModel) {
-        val viewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
-        val uiState by viewModel.uiState.collectAsState()
-
+    @Composable
+    private fun App(
+        sensorViewModel: SensorViewModel,
+    ) {
+        val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+        val preferencesUiState by preferencesViewModel.uiState.collectAsState()
         val navController: NavHostController = rememberNavController()
-
         var appStatus by remember { mutableStateOf(AppStatus.LOADING) }
 
-
-        LaunchedEffect(uiState) {
+        LaunchedEffect(preferencesUiState) {
             appStatus = when {
-                uiState.isStartScreen -> AppStatus.START
+                preferencesUiState.isStartScreen -> AppStatus.START
                 else -> AppStatus.GO
             }
         }
@@ -174,13 +168,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             startDestination = startDestination
         ) {
             composable(route = AppStatus.LOADING.name) {
-                Menu()
+                Splash()
             }
             composable(route = AppStatus.GO.name) {
                 AthanApp(sensorViewModel)
             }
             composable(route = AppStatus.START.name) {
-                StartUp(viewModel, navController)
+                StartUp(preferencesViewModel, navController)
             }
         }
     }
@@ -188,13 +182,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Composable
     private fun StartUp(
-        viewModel: PreferencesViewModel,
-        navController: NavHostController
+        preferencesViewModel: PreferencesViewModel,
+        navController: NavHostController,
     ) {
         val permissionRequest: MutableList<String> = ArrayList()
         if (!isNotificationPermissionGranted) {
             permissionRequest.add(NOTIFICATION)
         }
+
         permissionLauncher.launch(permissionRequest.toTypedArray())
 
         val context = LocalContext.current
@@ -213,7 +208,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     .fillMaxSize(),
             ) {
                 Text(
-                    text = "Welcome",
+                    text = "Salam!",
                     style = Typography.displayLarge,
                     color = Color.White
                 )
@@ -233,9 +228,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 }
                 Spacer(modifier = Modifier.padding(30.dp))
                 Image(
-                    painter = painterResource(id = R.drawable.logo_placeholder),
+                    painter = painterResource(id = R.drawable.my_logo),
                     contentDescription = "",
-                    modifier = Modifier.size(136.dp)
+                    modifier = Modifier
+                        .size(136.dp)
+                        .clip(CircleShape)
                 )
             }
         }
@@ -249,17 +246,27 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 mutableStateOf(isNetworkConnected(context))
             }
 
-            if (isLocationGranted && isNetworkConnected) {
-                (application as AthanApplication).onLocationPermissionGranted()
-                Button(
-                    onClick = {
-                        viewModel.requiresOnBoarding(false)
-                        navController.navigate(AppStatus.GO.name)
-                    },
-                    modifier = Modifier
-                        .padding(8.dp)
-                ) {
-                    Text("Continue")
+            if (isLocationPermissionGranted && isNetworkConnected) {
+
+                val appContainerUiState by (application as AthanApplication).appContainerViewModel.uiState.collectAsState()
+                val isReady = appContainerUiState.isAppContainerReady
+
+                if (isReady) {
+                    Button(
+                        onClick = {
+                            preferencesViewModel.requiresOnBoarding(false)
+                            navController.navigate(AppStatus.GO.name)
+                        },
+                        modifier = Modifier
+                            .padding(8.dp)
+                    ) {
+                        Text("Continue")
+                    }
+                }
+
+                LoadingScreen(isReady) {
+                    preferencesViewModel.requiresOnBoarding(false)
+                    navController.navigate(AppStatus.GO.name)
                 }
             } else if (!isNetworkConnected){
                 AlertDialog(
@@ -275,6 +282,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     }
                 )
             }
+        }
+    }
+
+    @Composable
+    fun LoadingScreen(isReady: Boolean, onContinueClick: () -> Unit) {
+        if (isReady) {
+            Button(
+                onClick = onContinueClick,
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text("Continue")
+            }
+        } else {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(30.dp)
+            )
         }
     }
 
@@ -310,24 +334,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!isCoarseLocationPermissionGranted || !isFineLocationPermissionGranted) {
-            val permissionRequest: MutableList<String> = ArrayList()
+        val permissionRequest: MutableList<String> = ArrayList()
 
-            if (!isCoarseLocationPermissionGranted) {
-                permissionRequest.add(COARSE_LOCATION)
-            }
-
-            if (!isFineLocationPermissionGranted) {
-                permissionRequest.add(FINE_LOCATION)
-            }
-            permissionLauncher.launch(permissionRequest.toTypedArray())
-
-            if (isCoarseLocationPermissionGranted) {
-                isLocationGranted = true
-            }
-        } else {
-            isLocationGranted = true
+        if (!isCoarseLocationPermissionGranted) {
+            permissionRequest.add(COARSE_LOCATION)
         }
+        if (!isFineLocationPermissionGranted) {
+            permissionRequest.add(FINE_LOCATION)
+        }
+        permissionLauncher.launch(permissionRequest.toTypedArray())
     }
 
     override fun onResume() {
@@ -357,7 +372,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent) {
-        var data: FloatArray
         when (event.sensor.type) {
             Sensor.TYPE_GRAVITY -> gData = event.values.clone()
             Sensor.TYPE_ACCELEROMETER -> gData = event.values.clone()
@@ -376,7 +390,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             sensorViewModel.updateAzimuth(mAzimuth)
         }
     }
-
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }

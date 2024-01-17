@@ -68,6 +68,12 @@ fun HomeBody(
         Color(213, 182, 216)
     }
 
+    val locationIndicator = if(darkMode) {
+        R.drawable.location_symbol
+    } else {
+        R.drawable.location_light
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         Image(
             painter = painterResource(id = background),
@@ -103,7 +109,7 @@ fun HomeBody(
                 ) {
                     Text(text = "Today - $cityName", color = Color.White, style = Typography.displayMedium)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Image(painter = painterResource(id = R.drawable.location_symbol), contentDescription = "", Modifier.size(29.dp))
+                    Image(painter = painterResource(id = locationIndicator), contentDescription = "", Modifier.size(29.dp))
                 }
             }
         }

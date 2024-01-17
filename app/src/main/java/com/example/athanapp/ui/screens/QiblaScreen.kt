@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -45,16 +46,28 @@ fun QiblaMenu(
         R.drawable.light_background
     }
 
+    val color = if (darkMode) {
+        Typography.displayMedium.color
+    } else {
+        Color(31, 33, 56)
+    }
+
     val textColor = if (darkMode) {
         Color(156, 180, 216)
     } else {
-        Color(31, 33, 56)
+        Color(213, 182, 216)
     }
 
     val image = if (darkMode) {
         R.drawable.compass
     } else {
         R.drawable.light_compass
+    }
+
+    val locationIndicator = if(darkMode) {
+        R.drawable.location_symbol
+    } else {
+        R.drawable.location_light
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -78,7 +91,7 @@ fun QiblaMenu(
                 )
                 Spacer(modifier = Modifier.padding(7.dp))
                 Image(
-                    painter = painterResource(id = R.drawable.location_symbol),
+                    painter = painterResource(id = locationIndicator),
                     contentDescription = "",
                     modifier = Modifier
                         .size(29.dp)
@@ -88,22 +101,22 @@ fun QiblaMenu(
 
             Spacer(modifier = Modifier.padding(7.dp))
 
-            val compassTextColor = if (darkMode) {
-                Color(156, 180, 216)
-            } else {
-                Color(213, 182, 216)
-            }
+            val truncatedLatitude = String.format("%.6f", preferencesUiState.latitude)
+            val truncatedLongitude = String.format("%.6f", preferencesUiState.longitude)
+
             Text(
-                text = "${preferencesUiState.latitude}, ${preferencesUiState.longitude}",
+                text = "$truncatedLatitude, $truncatedLongitude",
                 style = Typography.displayMedium,
-                color = compassTextColor
+                color = textColor
             )
+
             Spacer(modifier = Modifier.padding(52.5.dp))
             Image(
                 painter = painterResource(id = image),
                 contentDescription = "",
                 modifier = Modifier
                     .size(265.dp)
+                    .rotate(azimuthValue)
             )
             Spacer(modifier = Modifier.padding(20.dp))
 
@@ -116,7 +129,7 @@ fun QiblaMenu(
                 Text(
                     text = "${azimuthValue.roundToInt()}°",
                     style = Typography.displayLarge,
-                    color = textColor,
+                    color = color,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
