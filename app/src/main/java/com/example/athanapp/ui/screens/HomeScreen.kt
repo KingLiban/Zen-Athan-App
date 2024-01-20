@@ -39,14 +39,12 @@ import java.util.Locale
 fun HomeBody(
     modifier: Modifier = Modifier,
     navHostController: NavHostController,
+    athanUiState: AthanViewModel.AthanUiState,
+    preferencesUiState: PreferencesUiState,
+    cityName: String?
 ) {
-    val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
-    val athanUiState by athanViewModel.uiState.collectAsState()
     val currentPrayer = athanUiState.currentPrayer
     val timeLeft = athanUiState.timeLeft
-    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
-    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
-    val cityName = preferencesUiState.cityName
 
     val darkMode = preferencesUiState.isDarkMode
 

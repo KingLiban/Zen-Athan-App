@@ -1,5 +1,6 @@
 package com.example.athanapp.data
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -18,6 +19,9 @@ interface PrayerDao {
 
     @Query("SELECT * from prayers where readable = :date")
     fun getPrayer(date: String): Flow<PrayerEntity>
+
+    @Query("SELECT * FROM prayers WHERE readable BETWEEN :startDate AND :endDate")
+    fun get30DaysPrayer(startDate: String, endDate: String): Flow<List<PrayerEntity>>
 
 
 }

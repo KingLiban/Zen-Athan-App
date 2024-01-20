@@ -38,9 +38,13 @@ import com.example.athanapp.ui.theme.Typography
 
 
 @Composable()
-fun SettingsPage(modifier: Modifier = Modifier, navHostController: NavHostController) {
-    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
-    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+fun SettingsPage(
+    modifier: Modifier = Modifier,
+    navHostController: NavHostController,
+    preferencesViewModel: PreferencesViewModel,
+    preferencesUiState: PreferencesUiState,
+) {
+
     val darkMode = preferencesUiState.isDarkMode
 
     val background = if (darkMode) {
@@ -227,8 +231,8 @@ private fun NotificationsExpanded() {
     }
 }
 
-@Preview
-@Composable
-private fun SettingsPreview() {
-    SettingsPage(navHostController = rememberNavController())
-}
+//@Preview
+//@Composable
+//private fun SettingsPreview() {
+//    SettingsPage(navHostController = rememberNavController())
+//}

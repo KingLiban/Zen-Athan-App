@@ -15,16 +15,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
+import com.example.athanapp.ui.screens.AthanViewModel
 import com.example.athanapp.ui.screens.HomeBody
+import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.screens.QiblaMenu
 import com.example.athanapp.ui.screens.SensorViewModel
 import com.example.athanapp.ui.screens.SettingsPage
@@ -41,6 +46,11 @@ enum class Athan {
 fun AthanApp(sensorViewModel: SensorViewModel) {
     val navController: NavHostController = rememberNavController()
     val startDestination = Athan.Home.name
+    val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
+    val athanUiState by athanViewModel.uiState.collectAsState()
+    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
+    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+    val cityName = preferencesUiState.cityName
 
     NavHost(
         navController = navController,
@@ -49,7 +59,10 @@ fun AthanApp(sensorViewModel: SensorViewModel) {
         composable(route = Athan.Home.name) {
             HomeBody(
                 modifier = Modifier,
-                navController
+                navController,
+                athanUiState,
+                preferencesUiState,
+                cityName
             )
         }
 
@@ -57,14 +70,18 @@ fun AthanApp(sensorViewModel: SensorViewModel) {
             QiblaMenu(
                 modifier = Modifier,
                 navController,
-                sensorViewModel
+                sensorViewModel,
+                preferencesUiState,
+                cityName
             )
         }
 
         composable(route = Athan.Settings.name) {
             SettingsPage(
                 modifier = Modifier,
-                navController
+                navController,
+                preferencesViewModel,
+                preferencesUiState,
             )
         }
     }

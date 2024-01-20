@@ -2,7 +2,9 @@ package com.example.athanapp
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -13,6 +15,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -55,12 +58,20 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.room.util.query
+import com.example.athanapp.network.PrayerEntity
 import com.example.athanapp.ui.navigation.AthanApp
+import com.example.athanapp.ui.screens.AthanViewModel
+import com.example.athanapp.ui.screens.PreferencesUiState
 import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.screens.SensorViewModel
 import com.example.athanapp.ui.screens.Splash
 import com.example.athanapp.ui.theme.Typography
 import com.example.compose.AppTheme
+import java.text.DateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 
 class MainActivity : ComponentActivity(), SensorEventListener {
@@ -69,11 +80,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         private const val FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         private const val NOTIFICATION = Manifest.permission.POST_NOTIFICATIONS
+        @RequiresApi(Build.VERSION_CODES.S)
+        private const val ALARM = Manifest.permission.SCHEDULE_EXACT_ALARM
     }
 
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+
     private var isLocationPermissionGranted = false
     private var isNotificationPermissionGranted = false
+    private var isAlarmPermissionGranted = false
+
     private var mSensorManager: SensorManager? = null
     private var mAccelerometer: Sensor? = null
     private var mMagnetometer: Sensor? = null
@@ -90,6 +106,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private val orientation = FloatArray(3)
 
     private var sensorViewModel = SensorViewModel()
+    private val openAlertDialog = mutableStateOf(false)
 
     @SuppressLint("SuspiciousIndentation", "SourceLockedOrientationActivity")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -100,10 +117,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     permissions[COARSE_LOCATION] == true || permissions[FINE_LOCATION] == true || isLocationPermissionGranted
                 isNotificationPermissionGranted =
                     permissions[NOTIFICATION] ?: isNotificationPermissionGranted
+                isAlarmPermissionGranted =
+                    permissions[ALARM] ?: isAlarmPermissionGranted
                 if (isLocationPermissionGranted) {
                     println("Location permission granted")
                     (application as AthanApplication).onLocationPermissionGranted()
                 }
+                if (isNotificationPermissionGranted) {
+
+                }
+
             }
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -121,6 +144,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
 
         super.onCreate(savedInstanceState)
+
         setContent {
             AppTheme {
                 Surface(
@@ -132,7 +156,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
         }
     }
-
 
     private enum class AppStatus {
         LOADING,
@@ -158,8 +181,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
 
         val startDestination = when (appStatus) {
-            AppStatus.LOADING -> AppStatus.LOADING.name
             AppStatus.START -> AppStatus.START.name
+            AppStatus.LOADING -> AppStatus.LOADING.name
             AppStatus.GO -> AppStatus.GO.name
         }
 
@@ -185,12 +208,28 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         preferencesViewModel: PreferencesViewModel,
         navController: NavHostController,
     ) {
-        val permissionRequest: MutableList<String> = ArrayList()
-        if (!isNotificationPermissionGranted) {
-            permissionRequest.add(NOTIFICATION)
+        when {
+            openAlertDialog.value -> {
+                AlertDialog(
+                    onDismissRequest = { TODO() },
+                    confirmButton = {
+                        Button(onClick = { requestAlarmPermission() }) {
+                            Text(text = "OK")
+                        }
+                    },
+                    title = { Text("Notification Access Requirements") },
+                    text = { Text("In order to receive notifications you must give BOTH alarm permissions and post notification requirements.") },
+                    dismissButton = {
+                        Button(onClick = {
+                            openAlertDialog.value = false
+                        }) {
+                            Text(text = "Cancel")
+                        }
+                    }
+                )
+            }
         }
 
-        permissionLauncher.launch(permissionRequest.toTypedArray())
 
         val context = LocalContext.current
 
@@ -226,6 +265,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         style = Typography.displayMedium,
                     )
                 }
+                Spacer(modifier = Modifier.padding(8.dp))
+                Button(onClick = { openAlertDialog.value = true }) {
+                    Text(
+                        text = "Give Notification Access",
+                        style = Typography.displayMedium,
+                    )
+                }
                 Spacer(modifier = Modifier.padding(30.dp))
                 Image(
                     painter = painterResource(id = R.drawable.my_logo),
@@ -252,6 +298,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 val isReady = appContainerUiState.isAppContainerReady
 
                 if (isReady) {
+                    val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
+                    val prayerEntityList = athanViewModel.prayerEntityList
+                    athanViewModel.schedulePrayerNotifications(prayerEntityList)
                     Button(
                         onClick = {
                             preferencesViewModel.requiresOnBoarding(false)
@@ -264,8 +313,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     }
                 }
 
+                val preferencesUiState by preferencesViewModel.uiState.collectAsState()
+
                 LoadingScreen(isReady) {
                     preferencesViewModel.requiresOnBoarding(false)
+
+                    val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault())
+                    val currentTime = Date()
+                    val formattedTime = timeFormat.format(currentTime)
+                    val is12HourFormat = formattedTime.contains("AM", ignoreCase = true) || formattedTime.contains("PM", ignoreCase = true)
+
+                    preferencesViewModel.onPrayerTimesClicked(!is12HourFormat)
+                    (application as AthanApplication).setPreferencesUiState(preferencesUiState)
                     navController.navigate(AppStatus.GO.name)
                 }
             } else if (!isNetworkConnected){
@@ -285,8 +344,29 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun requestAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = ContextCompat.getSystemService(this, AlarmManager::class.java)
+            if (alarmManager?.canScheduleExactAlarms() == false) {
+                Intent().also { intent ->
+                    intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    this.startActivity(intent)
+                }
+            }
+        }
+
+        val permissionRequest: MutableList<String> = ArrayList()
+        if (!isNotificationPermissionGranted) {
+            permissionRequest.add(NOTIFICATION)
+        }
+
+        permissionLauncher.launch(permissionRequest.toTypedArray())
+        openAlertDialog.value = false
+    }
+
     @Composable
-    fun LoadingScreen(isReady: Boolean, onContinueClick: () -> Unit) {
+    private fun LoadingScreen(isReady: Boolean, onContinueClick: () -> Unit) {
         if (isReady) {
             Button(
                 onClick = onContinueClick,
@@ -303,7 +383,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun isNetworkConnected(context: Context): Boolean {
+    private fun isNetworkConnected(context: Context): Boolean {
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val capabilities =

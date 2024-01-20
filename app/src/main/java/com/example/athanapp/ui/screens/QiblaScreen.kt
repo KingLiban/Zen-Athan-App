@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.athanapp.R
 import com.example.athanapp.ui.navigation.BottomNavigation
@@ -31,10 +30,10 @@ fun QiblaMenu(
     modifier: Modifier = Modifier,
     navController: NavHostController,
     sensorViewModel: SensorViewModel,
+    preferencesUiState: PreferencesUiState,
+    cityName: String?,
 ) {
-    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
-    val preferencesUiState by preferencesViewModel.uiState.collectAsState()
-    val cityName = preferencesUiState.cityName
+
     val direction = preferencesUiState.direction
     val sensorUiState by sensorViewModel.uiState.collectAsState()
     val azimuthValue = sensorUiState.azimuth
