@@ -16,8 +16,7 @@ To install and run the Zen app, follow these steps:
 
 3. Build and run the app on an Android emulator or a **physical device**.
 
-![my_logo](https://github.com/KingLiban/Zen-Athan-App/assets/113272384/57c7025a-ce01-4910-b02c-57cbfd88481d | width=100)
-
+<img src="https://github.com/KingLiban/Zen-Athan-App/assets/113272384/6b8a2481-c672-48e8-bda4-bcfa39ecdaa6" width="100" height="100" />
 ## Usage
 
 ### Startup Screen
