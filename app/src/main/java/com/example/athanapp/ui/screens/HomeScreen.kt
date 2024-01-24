@@ -120,6 +120,7 @@ fun HomeBody(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun PrayerTimeList(
     athanUiState: AthanViewModel.AthanUiState,

@@ -27,11 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.athanapp.R
 import com.example.athanapp.ui.navigation.BottomNavigation
 import com.example.athanapp.ui.theme.Typography
@@ -41,7 +40,6 @@ import com.example.athanapp.ui.theme.Typography
 fun SettingsPage(
     modifier: Modifier = Modifier,
     navHostController: NavHostController,
-    preferencesViewModel: PreferencesViewModel,
     preferencesUiState: PreferencesUiState,
 ) {
 
@@ -103,7 +101,7 @@ fun SettingsPage(
             Spacer(modifier = Modifier.padding(3.dp))
             SettingCard("Prayer Times", false, containerColor, textColor)
 //            Spacer(modifier = Modifier.padding(3.dp))
-//            SettingCard("Notifications", false, preferencesViewModel::onNotificationsClicked)
+//            SettingCard("Notifications", false, containerColor, textColor)
             Spacer(modifier = Modifier.padding(20.dp))
             SettingCard("About", true, containerColor, textColor)
         }
@@ -170,6 +168,7 @@ private fun SettingCard(content: String, boolean: Boolean, containerColor: Color
                 "General Settings" -> GeneralSettingsExpanded()
                 "Prayer Times" -> PrayerTimesExpanded()
                 "Notifications" -> NotificationsExpanded()
+                "About" -> AboutExpanded()
             }
         }
     }
@@ -214,22 +213,33 @@ private fun PrayerTimesExpanded() {
     }
 }
 
-//@Composable
-//private fun AboutExpanded() {
-//    Text(text =  )
-//}
-
 @Composable
 private fun NotificationsExpanded() {
     val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
 
-    var checked by remember { mutableStateOf(false) }
-    Row {
-        Checkbox(checked = checked, onCheckedChange = { checked = it })
-        Text(text = "Notifications")
+    val checked = preferencesUiState.isNotification
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { preferencesViewModel.onPrayerTimesClicked(checked) }
+        )
+        Text(
+            text = "Notifications",
+        )
     }
 }
+
+@Composable
+private fun AboutExpanded() {
+    Text(
+        text = "Zen aims to enhance the daily spiritual practices of individuals, fostering a deeper connection to faith.",
+        textAlign = TextAlign.Center
+    )
+}
+
 
 //@Preview
 //@Composable

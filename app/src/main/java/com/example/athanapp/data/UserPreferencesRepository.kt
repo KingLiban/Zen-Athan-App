@@ -51,18 +51,6 @@ class UserPreferencesRepository(
         .map { preferences ->
             preferences[IS_DARK_MODE] ?: true
         },
-    val isNotification: Flow<Boolean> = dataStore.data
-        .catch {
-            if(it is IOException) {
-                Log.e(TAG, "Error reading preferences.", it)
-                emit(emptyPreferences())
-            } else {
-                throw it
-            }
-        }
-        .map { preferences ->
-            preferences[IS_DARK_MODE] ?: true
-        },
     val is12Hour: Flow<Boolean> = dataStore.data
         .catch {
             if(it is IOException) {
@@ -74,6 +62,18 @@ class UserPreferencesRepository(
         }
         .map { preferences ->
             preferences[IS_12_HOUR] ?: true
+        },
+    val isNotification: Flow<Boolean> = dataStore.data
+        .catch {
+            if(it is IOException) {
+                Log.e(TAG, "Error reading preferences.", it)
+                emit(emptyPreferences())
+            } else {
+                throw it
+            }
+        }
+        .map { preferences ->
+            preferences[IS_NOTIFICATION] ?: true
         },
     val latitude: Flow<Double> = dataStore.data
         .catch {
@@ -116,7 +116,7 @@ class UserPreferencesRepository(
         val IS_START_SCREEN = booleanPreferencesKey("is_start_screen")
         val SELECTED_CITY = stringPreferencesKey("selected_city")
         val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
-//        val IS_NOTIFICATION = booleanPreferencesKey("is_notification")
+        val IS_NOTIFICATION = booleanPreferencesKey("is_notification")
         val IS_12_HOUR = booleanPreferencesKey("is_12_hour")
         val LATITUDE = doublePreferencesKey("latitude")
         val LONGITUDE = doublePreferencesKey("longitude")
@@ -127,7 +127,12 @@ class UserPreferencesRepository(
     suspend fun saveLayoutPreference(isStartScreen: Boolean) {
         dataStore.edit { preferences ->
             preferences[IS_START_SCREEN] = isStartScreen
+        }
+    }
 
+    suspend fun saveNotificationPreferences(isNotification: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[IS_NOTIFICATION] = isNotification
         }
     }
 

@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,18 +36,15 @@ import com.example.athanapp.ui.screens.SettingsPage
 enum class Athan {
     Home,
     Qibla,
-//    Mystery(title = R.string.mystery),
     Settings
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AthanApp(sensorViewModel: SensorViewModel) {
+fun AthanApp(sensorViewModel: SensorViewModel, athanViewModel: AthanViewModel, preferencesViewModel: PreferencesViewModel) {
     val navController: NavHostController = rememberNavController()
     val startDestination = Athan.Home.name
-    val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
     val athanUiState by athanViewModel.uiState.collectAsState()
-    val preferencesViewModel: PreferencesViewModel = viewModel(factory = PreferencesViewModel.Factory)
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
     val cityName = preferencesUiState.cityName
 
@@ -80,7 +76,6 @@ fun AthanApp(sensorViewModel: SensorViewModel) {
             SettingsPage(
                 modifier = Modifier,
                 navController,
-                preferencesViewModel,
                 preferencesUiState,
             )
         }
@@ -113,13 +108,6 @@ fun BottomNavigation(navController: NavHostController, modifier: Modifier) {
                 text = "Qibla",
                 onClick = { navController.navigate(Athan.Qibla.name) }
             )
-
-            // Filler icon (Replace with the actual functionality)
-//            ClickableImageWithText(
-//                imageResId = R.drawable.filler_icon,
-//                text = "Filler",
-//                onClick = { /* Handle filler click action */ }
-//            )
 
             // Settings icon
             ClickableImageWithText(

@@ -35,7 +35,7 @@ fun Splash(modifier: Modifier = Modifier) {
             painter = painterResource(id = background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds // This makes the image scale to the size of the Box
+            contentScale = ContentScale.FillBounds
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -43,7 +43,6 @@ fun Splash(modifier: Modifier = Modifier) {
                 .padding(50.dp)
                 .fillMaxSize(),
         ) {
-
 
         }
     }

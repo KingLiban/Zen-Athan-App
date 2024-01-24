@@ -1,16 +1,17 @@
 package com.example.athanapp.data
 
-import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import com.example.athanapp.network.ApiResponse
 import com.example.athanapp.network.AthanApiService
 import com.example.athanapp.network.PrayerData
 import com.example.athanapp.network.PrayerEntity
 import com.example.athanapp.network.QiblaData
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 interface AthanObjectRepository {
@@ -22,14 +23,14 @@ class AthanObjectNetworkRepository(
     private val years: List<Int>,
     private val latitude: Double,
     private val longitude: Double,
-    private val context: Context
+    private val connectivityManager: ConnectivityManager
 ) : AthanObjectRepository {
 
     private lateinit var qiblaData: QiblaData
     @RequiresApi(Build.VERSION_CODES.M)
     override suspend fun getAthanObjects(): List<PrayerEntity> {
         val list: MutableList<PrayerEntity> = mutableListOf()
-        if (isNetworkConnected(context)) {
+        if (isNetworkConnected()) {
             for (year in years) {
                 val prayerData = athanApiService.getPrayerData(year, latitude, longitude)
                 list.addAll(mapToPrayerEntity(prayerData))
@@ -40,7 +41,7 @@ class AthanObjectNetworkRepository(
 
     @RequiresApi(Build.VERSION_CODES.M)
     override suspend fun getQiblaData(): QiblaData {
-        if (isNetworkConnected(context)) {
+        if (isNetworkConnected()) {
             val apiService = athanApiService.getQiblaInfo(latitude, longitude)
             qiblaData = apiService.data
         }
@@ -49,9 +50,7 @@ class AthanObjectNetworkRepository(
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun isNetworkConnected(context: Context): Boolean {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    fun isNetworkConnected(): Boolean {
         val capabilities =
             connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
         if (capabilities != null) {
@@ -73,9 +72,12 @@ class AthanObjectNetworkRepository(
         val entities = mutableListOf<PrayerEntity>()
         for ((_, dataList) in prayerData.data) {
             for (data in dataList) {
+                val inputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+                val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val convertedDate = outputFormat.format(inputFormat.parse(data.date.readable) ?: Date())
                 entities.add(
                     PrayerEntity(
-                        readable = data.date.readable,
+                        readable = convertedDate,
                         fajr = data.timings.fajr,
                         sunrise = data.timings.sunrise,
                         dhuhr = data.timings.dhuhr,

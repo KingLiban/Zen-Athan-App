@@ -26,7 +26,7 @@ class DefaultAppContainer(
 
     private val baseUrl = "https://api.aladhan.com/"
 
-    val retrofit: Retrofit = Retrofit.Builder()
+    private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(baseUrl)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
@@ -45,7 +45,7 @@ class DefaultAppContainer(
             years,
             latitude,
             longitude,
-            context
+            connectivityManager
         )
     }
 

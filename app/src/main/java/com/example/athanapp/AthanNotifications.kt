@@ -1,6 +1,5 @@
 package com.example.athanapp
 
-import android.annotation.SuppressLint
 import android.app.*
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -8,11 +7,6 @@ import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import com.example.athanapp.network.PrayerEntity
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AthanNotificationService(
@@ -32,9 +26,14 @@ class AthanNotificationService(
             activityIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
+        val contextText = if (prayerName == "Sunrise") {
+            "The sun is rising!"
+        } else {
+            "It's time for prayer!"
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle("$prayerName at $prayerTime")
-            .setContentText("It's time for prayer!")
+            .setContentText(contextText)
             .setSmallIcon(R.drawable.baseline_auto_awesome_24)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(activityPendingIntent)

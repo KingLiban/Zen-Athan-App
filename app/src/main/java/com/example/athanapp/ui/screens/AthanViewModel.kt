@@ -7,11 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -30,12 +25,13 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
+import java.time.format.DateTimeParseException
 import java.util.Date
 import java.util.Locale
 
@@ -43,16 +39,17 @@ import java.util.Locale
 class AthanViewModel(
     private val prayersRepository: PrayersRepository,
     private val alarmManager: AlarmManager,
-    private val context: Context,
-    private val preferencesUiState: PreferencesUiState
+    private val context: Context
 ) : ViewModel() {
 
     private val currentDate = LocalDate.now()
 
     private val currentDatePlus30 = currentDate.plusDays(30)
 
-    private val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH)
+    private val formatter2 = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
     private val date = currentDate.format(formatter)
+    private val readableDate = currentDate.format(formatter2)
     private val endDate = currentDatePlus30.format(formatter)
 
     private val _uiState = MutableStateFlow(AthanUiState())
@@ -60,10 +57,7 @@ class AthanViewModel(
     val uiState: StateFlow<AthanUiState> get() = _uiState
     private var timerJob: Job? = null
 
-    private var isNotificationsScheduled = false
-    var prayerEntityList = listOf<PrayerEntity>()
-    private var is12Hour = { mutableStateOf(preferencesUiState.is12Hour) }
-
+    private var prayerEntityList: List<PrayerEntity> = listOf()
     init {
         println("Initializing AthanViewModel")
         viewModelScope.launch {
@@ -73,7 +67,7 @@ class AthanViewModel(
                     val currentPrayer = getCurrentPrayer(prayerEntity)
                     val newTimeLeft = getTimeUntilNextPrayer(prayerEntity)
                     val newState = _uiState.value.copy(
-                        prayerEntity = prayerEntity,
+                        prayerEntity = prayerEntity.copy(readable = readableDate),
                         timeLeft = newTimeLeft,
                         currentPrayer = currentPrayer
                     )
@@ -83,13 +77,12 @@ class AthanViewModel(
             }
 
         viewModelScope.launch {
-            if (!isNotificationsScheduled) {
-                prayersRepository.get30DaysPrayer(date, endDate)
-                    .filterNotNull()
-                    .collect { list ->
-                        prayerEntityList = list
-                    }
-            }
+            println("Date: $date End date: $endDate")
+            prayersRepository.get30DaysPrayer(date, endDate)
+                .filterNotNull()
+                .collect { list ->
+                    prayerEntityList = list
+                }
         }
     }
 
@@ -115,85 +108,12 @@ class AthanViewModel(
         return currentPrayer
     }
 
-    @SuppressLint("ScheduleExactAlarm")
-    fun schedulePrayerNotifications(prayerEntityList: List<PrayerEntity>) {
-        val is12HourFormat = is12Hour().value
-
-//        val mockPrayerTime = "19:02"
-        val mockPrayerTime = "7:04 PM"
-
-        val formatter: DateTimeFormatter = if (is12HourFormat) {
-            DateTimeFormatter.ofPattern("hh:mm a")
-        } else {
-            DateTimeFormatter.ofPattern("HH:mm")
-        }
-
-        val mockPrayerDateTime = LocalDateTime.of(LocalDate.now(), LocalTime.parse(mockPrayerTime, formatter))
-//        val mockPrayerDateTime2 = LocalDateTime.of(LocalDate.now(), LocalTime.parse(mockPrayerTime2, formatter))
-
-        val intent = Intent(context, AthanNotificationReceiver::class.java)
-        intent.action = "SHOW_NOTIFICATION"
-        intent.putExtra("prayerName", "Mock Prayer")
-        intent.putExtra("prayerTime", mockPrayerTime)
-
-//        val intent2 = Intent(context, AthanNotificationReceiver::class.java)
-//        intent2.action = "SHOW_NOTIFICATION"
-//        intent2.putExtra("prayerName", "Mock Prayer")
-//        intent2.putExtra("prayerTime", mockPrayerTime2)
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-        )
-
-//        val pendingIntent2 = PendingIntent.getBroadcast(
-//            context,
-//            1,
-//            intent2,
-//            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-//        )
-
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            mockPrayerDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-            pendingIntent
-        )
-
-//        alarmManager.setExact(
-//            AlarmManager.RTC_WAKEUP,
-//            mockPrayerDateTime2.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-//            pendingIntent2
-//        )
-
-
-       /*
-        for (prayerEntity in prayerEntityList) {
-            val prayerTimes = listOf(
-                "Fajr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.fajr.split(" ")[0])),
-                "Sunrise" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.sunrise.split(" ")[0])),
-                "Dhuhr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.dhuhr.split(" ")[0])),
-                "Asr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.asr.split(" ")[0])),
-                "Maghrib" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.maghrib.split(" ")[0])),
-                "Isha" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.isha.split(" ")[0]))
-            ).sortedBy { it.second }
-
-            // change to 12 hour or 24 hour later
-
-            for ((prayerName, prayerTime) in prayerTimes) {
-
-            }
-        }
-        */
-    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun getTimeUntilNextPrayer(prayerEntity: PrayerEntity): String {
         val currentTime = LocalDateTime.now()
         val prayerTimes = listOf(
             "Fajr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.fajr.split(" ")[0])),
-            "Sunrise" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.sunrise.split(" ")[0])),
             "Dhuhr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.dhuhr.split(" ")[0])),
             "Asr" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.asr.split(" ")[0])),
             "Maghrib" to LocalDateTime.of(LocalDate.now(), LocalTime.parse(prayerEntity.maghrib.split(" ")[0])),
@@ -236,6 +156,85 @@ class AthanViewModel(
         }
     }
 
+    @SuppressLint("NewApi")
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun onPermissionsAndDatabaseReady(is12Hour: Boolean) {
+        if (alarmManager.canScheduleExactAlarms()) {
+            println("Permissions and database ready")
+            try {
+                schedulePrayerNotifications(prayerEntityList, is12Hour)
+            } catch (e: Exception) {
+                println("Coroutine failed: ${e.message}")
+            }
+        } else {
+            println("Can't schedule exact alarms")
+        }
+
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @SuppressLint("ScheduleExactAlarm")
+    private fun schedulePrayerNotifications(prayerEntityList: List<PrayerEntity>, is12HourFormat: Boolean) {
+        println("Scheduling prayer notifications")
+
+        val formatter24Hour = DateTimeFormatter.ofPattern("HH:mm")
+        val formatter12Hour = DateTimeFormatter.ofPattern("h:mm a")
+
+        println("Prayer entity list size: ${prayerEntityList.size}")
+        for ((dayIndex, prayerEntity) in prayerEntityList.withIndex()) {
+            for ((prayerName, prayerTime) in listOf(
+                "Fajr" to prayerEntity.fajr,
+                "Sunrise" to prayerEntity.sunrise,
+                "Dhuhr" to prayerEntity.dhuhr,
+                "Asr" to prayerEntity.asr,
+                "Maghrib" to prayerEntity.maghrib,
+                "Isha" to prayerEntity.isha
+            )) {
+                try {
+                    val timeWithoutTimeZone = prayerTime.split(" ")[0]
+                    val prayerDateTime = LocalTime.parse(timeWithoutTimeZone, formatter24Hour)
+                        .atDate(LocalDate.now().plusDays(dayIndex.toLong()))
+                        .atZone(ZoneId.systemDefault())
+                        .toInstant()
+
+                    if (prayerDateTime.isAfter(Instant.now())) {
+                        val prayerDateTimeMillis = prayerDateTime.toEpochMilli()
+
+                        val formattedTime =
+                            if (is12HourFormat) LocalTime.parse(timeWithoutTimeZone, formatter24Hour)
+                                .format(formatter12Hour)
+                            else timeWithoutTimeZone
+
+                        val intent = Intent(context, AthanNotificationReceiver::class.java)
+                        intent.action = "SHOW_NOTIFICATION"
+                        intent.putExtra("prayerName", prayerName)
+                        intent.putExtra("prayerTime", formattedTime)
+
+                        val requestCode = (dayIndex * 100) + prayerName.hashCode()
+
+                        val pendingIntent = PendingIntent.getBroadcast(
+                            context,
+                            requestCode,
+                            intent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                        )
+
+                        alarmManager.setExact(
+                            AlarmManager.RTC_WAKEUP,
+                            prayerDateTimeMillis,
+                            pendingIntent
+                        )
+
+                        println("Scheduled $prayerName notification for $prayerTime")
+                    }
+                } catch (e: DateTimeParseException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+
     data class AthanUiState(
         val prayerEntity: PrayerEntity = PrayerEntity(
             readable = "",
@@ -257,9 +256,8 @@ class AthanViewModel(
                 val application = (this[APPLICATION_KEY] as AthanApplication)
                 val prayersRepository = application.appContainer.prayersRepository
                 val alarmManager = application.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                val preferencesUiState = application.preferencesUiState
                 val context = application.applicationContext
-                AthanViewModel(prayersRepository, alarmManager, context, preferencesUiState)
+                AthanViewModel(prayersRepository, alarmManager, context)
             }
         }
     }

@@ -24,18 +24,20 @@ class PreferencesViewModel(
             userPreferencesRepository.selectedCity,
             userPreferencesRepository.isDarkMode,
             userPreferencesRepository.is12Hour,
+            userPreferencesRepository.isNotification,
             userPreferencesRepository.latitude,
             userPreferencesRepository.longitude,
-            userPreferencesRepository.direction
+            userPreferencesRepository.direction,
         ) { values ->
             PreferencesUiState(
                 isStartScreen = values[0] as Boolean,
                 cityName = values[1] as String,
                 isDarkMode = values[2] as Boolean,
                 is12Hour = values[3] as Boolean,
-                latitude = values[4] as Double,
-                longitude = values[5] as Double,
-                direction = values[6] as Double
+                isNotification = values[4] as Boolean,
+                latitude = values[5] as Double,
+                longitude = values[6] as Double,
+                direction = values[7] as Double,
             )
         }
             .stateIn(
@@ -68,9 +70,11 @@ class PreferencesViewModel(
         }
     }
 
-//    fun onNotificationsClicked() {
-//        TODO("Not yet implemented")
-//    }
+    fun onNotificationsClicked(checked: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveNotificationPreferences(!checked)
+        }
+    }
 
     fun saveQiblaDirection(coordinates: Pair<Double, Double>, direction: Double) {
         viewModelScope.launch {
@@ -93,6 +97,7 @@ data class PreferencesUiState(
     val cityName: String? = "",
     val isDarkMode: Boolean = true,
     val is12Hour: Boolean = false,
+    val isNotification: Boolean = false,
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val direction: Double = 0.0

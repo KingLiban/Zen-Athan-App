@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -58,24 +59,20 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.room.util.query
-import com.example.athanapp.network.PrayerEntity
 import com.example.athanapp.ui.navigation.AthanApp
 import com.example.athanapp.ui.screens.AthanViewModel
-import com.example.athanapp.ui.screens.PreferencesUiState
 import com.example.athanapp.ui.screens.PreferencesViewModel
 import com.example.athanapp.ui.screens.SensorViewModel
 import com.example.athanapp.ui.screens.Splash
 import com.example.athanapp.ui.theme.Typography
-import com.example.compose.AppTheme
+import com.example.athanapp.ui.theme.AppTheme
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.TimeZone
 
 
 class MainActivity : ComponentActivity(), SensorEventListener {
-    companion object {
+    private companion object {
         private const val COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION
         private const val FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -108,6 +105,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var sensorViewModel = SensorViewModel()
     private val openAlertDialog = mutableStateOf(false)
 
+    private var isReady = false
+
     @SuppressLint("SuspiciousIndentation", "SourceLockedOrientationActivity")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,12 +123,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     (application as AthanApplication).onLocationPermissionGranted()
                 }
                 if (isNotificationPermissionGranted) {
-
+                    println("Notification permission granted")
                 }
-
             }
 
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT // scuff for tablets and folded phones
 
         mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mGravity = mSensorManager!!.getDefaultSensor(Sensor.TYPE_GRAVITY)
@@ -163,6 +161,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         GO
     }
 
+    @SuppressLint("SuspiciousIndentation")
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     @Composable
     private fun App(
@@ -194,7 +193,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 Splash()
             }
             composable(route = AppStatus.GO.name) {
-                AthanApp(sensorViewModel)
+                val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
+                isNotificationPermissionGranted =
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        NOTIFICATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                if (isNotificationPermissionGranted) {
+                    val is12Hour = preferencesUiState.is12Hour
+                    athanViewModel.onPermissionsAndDatabaseReady(is12Hour)
+                    preferencesViewModel.onNotificationsClicked(false)
+                }
+
+                AthanApp(sensorViewModel, athanViewModel, preferencesViewModel)
             }
             composable(route = AppStatus.START.name) {
                 StartUp(preferencesViewModel, navController)
@@ -220,16 +231,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     title = { Text("Notification Access Requirements") },
                     text = { Text("In order to receive notifications you must give BOTH alarm permissions and post notification requirements.") },
                     dismissButton = {
-                        Button(onClick = {
-                            openAlertDialog.value = false
-                        }) {
+                        Button(onClick = { openAlertDialog.value = false }) {
                             Text(text = "Cancel")
                         }
                     }
                 )
             }
         }
-
 
         val context = LocalContext.current
 
@@ -259,19 +267,32 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.padding(48.dp))
-                Button(onClick = { requestLocationAccess() }) {
-                    Text(
-                        text = "Give Location Access",
-                        style = Typography.displayMedium,
-                    )
+                Column {
+                    Button(
+                        onClick = { requestLocationAccess() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Give Location Access",
+                            style = Typography.displayMedium,
+                        )
+                    }
+
+                    Button(
+                        onClick = { openAlertDialog.value = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "Give Notification Access",
+                            style = Typography.displayMedium,
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.padding(8.dp))
-                Button(onClick = { openAlertDialog.value = true }) {
-                    Text(
-                        text = "Give Notification Access",
-                        style = Typography.displayMedium,
-                    )
-                }
+
                 Spacer(modifier = Modifier.padding(30.dp))
                 Image(
                     painter = painterResource(id = R.drawable.my_logo),
@@ -282,6 +303,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 )
             }
         }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -293,43 +315,21 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
 
             if (isLocationPermissionGranted && isNetworkConnected) {
-
                 val appContainerUiState by (application as AthanApplication).appContainerViewModel.uiState.collectAsState()
-                val isReady = appContainerUiState.isAppContainerReady
-
-                if (isReady) {
-                    val athanViewModel: AthanViewModel = viewModel(factory = AthanViewModel.Factory)
-                    val prayerEntityList = athanViewModel.prayerEntityList
-                    athanViewModel.schedulePrayerNotifications(prayerEntityList)
-                    Button(
-                        onClick = {
-                            preferencesViewModel.requiresOnBoarding(false)
-                            navController.navigate(AppStatus.GO.name)
-                        },
-                        modifier = Modifier
-                            .padding(8.dp)
-                    ) {
-                        Text("Continue")
-                    }
-                }
-
-                val preferencesUiState by preferencesViewModel.uiState.collectAsState()
-
+                isReady = appContainerUiState.isAppContainerReady
+                val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault())
+                val currentTime = Date()
+                val formattedTime = timeFormat.format(currentTime)
+                val is12HourFormat = formattedTime.contains("AM", ignoreCase = true) || formattedTime.contains("PM", ignoreCase = true)
                 LoadingScreen(isReady) {
-                    preferencesViewModel.requiresOnBoarding(false)
-
-                    val timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT, Locale.getDefault())
-                    val currentTime = Date()
-                    val formattedTime = timeFormat.format(currentTime)
-                    val is12HourFormat = formattedTime.contains("AM", ignoreCase = true) || formattedTime.contains("PM", ignoreCase = true)
-
                     preferencesViewModel.onPrayerTimesClicked(!is12HourFormat)
-                    (application as AthanApplication).setPreferencesUiState(preferencesUiState)
+                    preferencesViewModel.requiresOnBoarding(false)
                     navController.navigate(AppStatus.GO.name)
                 }
-            } else if (!isNetworkConnected){
+
+            } else if (!isNetworkConnected) {
                 AlertDialog(
-                    onDismissRequest = { /*TODO*/ },
+                    onDismissRequest = { TODO() },
                     title = { Text("No Internet Connection") },
                     text = { Text("Please turn on your internet connection to continue.") },
                     confirmButton = {
@@ -369,8 +369,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private fun LoadingScreen(isReady: Boolean, onContinueClick: () -> Unit) {
         if (isReady) {
             Button(
-                onClick = onContinueClick,
-                modifier = Modifier.padding(8.dp)
+                onClick = {
+                    onContinueClick()
+                },
+                modifier = Modifier
+                    .padding(8.dp)
             ) {
                 Text("Continue")
             }
@@ -448,7 +451,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onPause() {
         super.onPause()
-         mSensorManager?.unregisterListener(this)
+        mSensorManager?.unregisterListener(this)
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -471,7 +474,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
 }

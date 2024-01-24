@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class SensorViewModel : ViewModel() {
-
     data class SensorUiState(
         val azimuth: Float = 0f
     )
